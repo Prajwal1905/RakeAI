@@ -53,3 +53,62 @@ MAX_RAKE_SIZE_WAGONS = 58
 FREIGHT_RATE_PER_KM_PER_TONNE = 1.2   
 DEMURRAGE_RATE_PER_DAY = 15000         
 STORAGE_COST_PER_TONNE_PER_DAY = 8    
+
+
+def generate_stockyard_inventory():
+    records = []
+    for sy in STOCKYARDS:
+        for product in PRODUCTS:
+            quantity = round(random.uniform(200, sy["capacity"] / len(PRODUCTS)), 2)
+            age_days  = random.randint(1, 45)
+            records.append({
+                "stockyard_id":   sy["id"],
+                "stockyard_name": sy["name"],
+                "product":        product,
+                "quantity_tonnes": quantity,
+                "age_days":       age_days,
+                "storage_cost_per_day": round(quantity * STORAGE_COST_PER_TONNE_PER_DAY, 2),
+            })
+    df = pd.DataFrame(records)
+    print(f" Stockyard Inventory: {len(df)} records")
+    return df
+
+
+def generate_customer_orders(n=300):
+    priorities   = ["Critical", "High", "Medium", "Low"]
+    order_types  = ["Rail", "Road"]
+    records = []
+
+    for i in range(n):
+        product      = random.choice(PRODUCTS)
+        destination  = random.choice(CMO_STOCKYARDS)
+        order_date   = datetime(2024, 1, 1) + timedelta(days=random.randint(0, 180))
+        deadline_days = random.randint(3, 15)
+        deadline     = order_date + timedelta(days=deadline_days)
+        quantity     = round(random.uniform(100, 1200), 2)
+        priority     = random.choices(priorities, weights=[10, 25, 40, 25])[0]
+        order_type   = random.choices(order_types, weights=[70, 30])[0]
+
+        penalty_map  = {"Critical": 50000, "High": 30000, "Medium": 15000, "Low": 5000}
+        freight_cost = round(quantity * destination["distance_km"] * FREIGHT_RATE_PER_KM_PER_TONNE, 2)
+
+        records.append({
+            "order_id":          f"ORD{1000 + i}",
+            "product":           product,
+            "quantity_tonnes":   quantity,
+            "destination_id":    destination["id"],
+            "destination_city":  destination["city"],
+            "distance_km":       destination["distance_km"],
+            "order_date":        order_date.date(),
+            "deadline":          deadline.date(),
+            "deadline_days":     deadline_days,
+            "priority":          priority,
+            "order_type":        order_type,
+            "estimated_freight": freight_cost,
+            "penalty_per_day":   penalty_map[priority],
+            "status":            "Pending",
+        })
+
+    df = pd.DataFrame(records)
+    print(f" Customer Orders: {len(df)} records")
+    return df
