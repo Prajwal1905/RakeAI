@@ -310,7 +310,7 @@ if __name__ == "__main__":
         "customer_orders.csv":       generate_customer_orders(300),
         "rake_availability.csv":     generate_rake_availability(60),
         "loading_dock_schedule.csv": generate_loading_dock_schedule(30),
-        "historical_dispatch.csv":   generate_historical_dispatch(500),
+        "historical_dispatch.csv":   generate_historical_dispatch(2000),
         "product_wagon_matrix.csv":  generate_product_wagon_matrix(),
     }
 
