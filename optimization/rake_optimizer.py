@@ -129,34 +129,180 @@ def get_delay_risk(order, model_path=None):
         
         return 0.3
 
-if __name__ == "__main__":
-    print("\n Testing Cost Calculations\n")
 
-    # Sample order
-    sample_order = {
-        'order_id':        'ORD1001',
-        'quantity_tonnes': 500,
-        'distance_km':     1200,
-        'priority':        'High'
-    }
+#  WAGON COMPATIBILITY CHECK
+
+def is_wagon_compatible(product, wagon_type, matrix_df):
+    
+    row = matrix_df[
+        (matrix_df['product']     == product) &
+        (matrix_df['wagon_type']  == wagon_type)
+    ]
+    if len(row) == 0:
+        return False
+    return bool(row.iloc[0]['is_suitable'])
+
+
+# FIND BEST STOCKYARD FOR ORDER
+
+def find_best_stockyard(order, inventory_df):
+   
+    available = inventory_df[
+        (inventory_df['product']          == order['product']) &
+        (inventory_df['quantity_tonnes']  >= order['quantity_tonnes'] * 0.5)
+    ].copy()
+
+    if len(available) == 0:
+        return None
+
+    # Prefer oldest stock (higher age = more storage cost saved)
+    available = available.sort_values('age_days', ascending=False)
+    return available.iloc[0]
+
+
+#  CORE OPTIMIZATION ENGINE
+def optimize_rake_plan(date_str=None, max_rakes=10):
+    
+    if date_str is None:
+        date_str = datetime.now().strftime('%Y-%m-%d')
 
     
-    sample_rake = {
-        'rake_id':    'RK101',
-        'num_wagons': 45
-    }
+    print(f"   SAIL RakeAI - Optimization Engine")
+    print(f"   Planning Date: {date_str}")
+    
 
-    costs = calculate_total_rake_cost(sample_order, sample_rake, delay_days=1)
+    # Load all data
+    inventory = load_inventory()
+    orders    = load_orders()
+    rakes     = load_rakes()
+    matrix    = load_product_wagon_matrix()
 
-    print(" Sample Cost Breakdown ")
-    print(f"Order      : {sample_order['order_id']}")
-    print(f"Quantity   : {sample_order['quantity_tonnes']} tonnes")
-    print(f"Distance   : {sample_order['distance_km']} km")
-    print(f"Priority   : {sample_order['priority']}")
-    print(f"\nCost Breakdown:")
-    print(f"  Freight Cost   : ₹{costs['freight_cost']:,.2f}")
-    print(f"  Storage Cost   : ₹{costs['storage_cost']:,.2f}")
-    print(f"  Demurrage Cost : ₹{costs['demurrage_cost']:,.2f}")
-    print(f"  Penalty Cost   : ₹{costs['penalty_cost']:,.2f}")
-    print(f"  {'─'*30}")
-    print(f"  Total Cost     : ₹{costs['total_cost']:,.2f}")
+    print(f" Summary:")
+    print(f"   Pending Orders  : {len(orders)}")
+    print(f"   Available Rakes : {len(rakes)}")
+    print(f"   Stockyard Items : {len(inventory)}\n")
+
+    avail_rakes        = rakes.head(max_rakes).copy()
+    assigned_order_ids = set()
+    rake_plans         = []
+
+    for _, rake in avail_rakes.iterrows():
+        remaining_capacity = rake['total_capacity']
+        rake_orders        = []
+        rake_total_cost    = 0
+        rake_quantity      = 0
+
+        # Get compatible orders for this rake
+        compatible_orders = []
+        for _, order in orders.iterrows():
+            if order['order_id'] in assigned_order_ids:
+                continue
+            if not is_wagon_compatible(
+                order['product'], rake['wagon_type'], matrix
+            ):
+                continue
+            if order['quantity_tonnes'] > rake['total_capacity']:
+                continue
+            compatible_orders.append(order)
+
+        if not compatible_orders:
+            continue
+
+        # Sort by priority then quantity 
+        compatible_orders = sorted(
+            compatible_orders,
+            key=lambda x: (x['priority_rank'], -x['quantity_tonnes'])
+        )
+
+        # Club orders until rake is 75%+ full or no more orders
+        for order in compatible_orders:
+            if remaining_capacity <= rake['total_capacity'] * 0.15:
+                break  # rake is full enough
+
+            if order['quantity_tonnes'] > remaining_capacity:
+                continue  # order too big for remaining space
+
+            stockyard = find_best_stockyard(order, inventory)
+            if stockyard is None:
+                continue
+
+            delay_risk = get_delay_risk(order)
+            expected_delay = round(delay_risk * 2)
+
+            costs = calculate_total_rake_cost(
+                order, rake, delay_days=expected_delay
+            )
+
+            rake_orders.append({
+                'order_id':        order['order_id'],
+                'product':         order['product'],
+                'quantity_tonnes': order['quantity_tonnes'],
+                'destination':     order['destination_city'],
+                'distance_km':     order['distance_km'],
+                'priority':        order['priority'],
+                'stockyard':       stockyard['stockyard_name'],
+                'delay_risk':      delay_risk,
+                'costs':           costs
+            })
+
+            remaining_capacity -= order['quantity_tonnes']
+            rake_quantity      += order['quantity_tonnes']
+            rake_total_cost    += costs['total_cost']
+            assigned_order_ids.add(order['order_id'])
+
+        # Only plan rake if at least 50% full
+        if rake_quantity >= rake['total_capacity'] * 0.5:
+            fill_pct = round((rake_quantity / rake['total_capacity']) * 100, 1)
+
+            # Get primary destination 
+            destinations = [o['destination'] for o in rake_orders]
+            primary_dest = max(set(destinations), key=destinations.count)
+
+            rake_plans.append({
+                'rake_id':         rake['rake_id'],
+                'wagon_type':      rake['wagon_type'],
+                'num_wagons':      rake['num_wagons'],
+                'total_capacity':  rake['total_capacity'],
+                'orders_clubbed':  len(rake_orders),
+                'order_ids':       ', '.join([o['order_id'] for o in rake_orders]),
+                'products':        ', '.join(set([o['product'] for o in rake_orders])),
+                'primary_destination': primary_dest,
+                'quantity_loaded': round(rake_quantity, 2),
+                'fill_percentage': fill_pct,
+                'avg_delay_risk':  round(
+                    sum([o['delay_risk'] for o in rake_orders]) / len(rake_orders), 3
+                ),
+                'total_cost':      round(rake_total_cost, 2),
+                'status':          'Planned'
+            })
+
+    return pd.DataFrame(rake_plans)
+
+
+if __name__ == "__main__":
+    plan = optimize_rake_plan(max_rakes=10)
+
+    if len(plan) > 0:
+        print(f" Optimization complete!")
+        print(f"\n{'='*55}")
+        print(f"   DAILY RAKE PLAN")
+        print(f"{'='*55}")
+        for _, row in plan.iterrows():
+            print(f"\n {row['rake_id']} ({row['wagon_type']})")
+            print(f"   Orders clubbed  : {row['orders_clubbed']}")
+            print(f"   Products        : {row['products']}")
+            print(f"   Destination     : {row['primary_destination']}")
+            print(f"   Quantity loaded : {row['quantity_loaded']} tonnes")
+            print(f"   Fill %          : {row['fill_percentage']}%")
+            print(f"   Delay risk      : {row['avg_delay_risk']*100:.1f}%")
+            print(f"   Total cost      : ₹{row['total_cost']:,.2f}")
+
+      
+        print(f"   PLAN SUMMARY")
+        
+        print(f"  Rakes planned   : {len(plan)}")
+        print(f"  Orders assigned : {plan['orders_clubbed'].sum()}")
+        print(f"  Avg fill %      : {plan['fill_percentage'].mean():.1f}%")
+        print(f"  Total cost      : ₹{plan['total_cost'].sum():,.2f}")
+    else:
+        print(" No rakes could be planned with current data")
