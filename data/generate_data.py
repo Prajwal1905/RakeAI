@@ -112,3 +112,71 @@ def generate_customer_orders(n=300):
     df = pd.DataFrame(records)
     print(f" Customer Orders: {len(df)} records")
     return df
+
+
+def generate_rake_availability(n=60):
+    statuses = ["Available", "In Transit", "Under Maintenance", "Loading"]
+    records  = []
+
+    for i in range(n):
+        wagon_type  = random.choice(WAGON_TYPES)
+        num_wagons  = random.randint(MIN_RAKE_SIZE_WAGONS, MAX_RAKE_SIZE_WAGONS)
+        status      = random.choices(statuses, weights=[50, 25, 10, 15])[0]
+        location    = random.choice(["Bokaro Yard", "En Route", "Destination"])
+        eta_days    = random.randint(0, 5) if status == "In Transit" else 0
+
+        records.append({
+            "rake_id":            f"RK{100 + i}",
+            "wagon_type":         wagon_type["type"],
+            "num_wagons":         num_wagons,
+            "capacity_per_wagon": wagon_type["capacity_tonnes"],
+            "total_capacity":     round(num_wagons * wagon_type["capacity_tonnes"], 2),
+            "suitable_products":  ", ".join(wagon_type["suitable_for"]),
+            "status":             status,
+            "current_location":   location,
+            "eta_days":           eta_days,
+        })
+
+    df = pd.DataFrame(records)
+    print(f" Rake Availability: {len(df)} records")
+    return df
+
+
+def generate_loading_dock_schedule(days=30):
+    records = []
+    base_date = datetime(2024, 1, 1)
+
+    for day in range(days):
+        current_date = base_date + timedelta(days=day)
+        for dock in LOADING_DOCKS:
+            slots_used   = random.randint(0, 3)
+            is_available = slots_used < 3
+            records.append({
+                "date":              current_date.date(),
+                "dock_id":           dock["id"],
+                "dock_name":         dock["name"],
+                "capacity_per_hour": dock["capacity_per_hour"],
+                "slots_used":        slots_used,
+                "is_available":      is_available,
+                "suitable_wagons":   ", ".join(dock["suitable_wagon_types"]),
+            })
+
+    df = pd.DataFrame(records)
+    print(f" Loading Dock Schedule: {len(df)} records")
+    return df
+
+
+def generate_product_wagon_matrix():
+    records = []
+    for product in PRODUCTS:
+        for wagon in WAGON_TYPES:
+            is_suitable = 1 if product in wagon["suitable_for"] else 0
+            records.append({
+                "product":        product,
+                "wagon_type":     wagon["type"],
+                "is_suitable":    is_suitable,
+                "wagon_capacity": wagon["capacity_tonnes"],
+            })
+    df = pd.DataFrame(records)
+    print(f" Product-Wagon Matrix: {len(df)} records")
+    return df
