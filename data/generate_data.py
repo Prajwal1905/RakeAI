@@ -180,3 +180,84 @@ def generate_product_wagon_matrix():
     df = pd.DataFrame(records)
     print(f" Product-Wagon Matrix: {len(df)} records")
     return df
+
+
+def generate_historical_dispatch(n=500):
+    records = []
+
+    for i in range(n):
+        product      = random.choice(PRODUCTS)
+        destination  = random.choice(CMO_STOCKYARDS)
+        wagon_type   = random.choice(WAGON_TYPES)
+        num_wagons   = random.randint(MIN_RAKE_SIZE_WAGONS, MAX_RAKE_SIZE_WAGONS)
+        quantity     = round(num_wagons * wagon_type["capacity_tonnes"] * random.uniform(0.7, 1.0), 2)
+        fill_pct     = round((quantity / (num_wagons * wagon_type["capacity_tonnes"])) * 100, 2)
+
+        planned_date = datetime(2023, 1, 1) + timedelta(days=random.randint(0, 364))
+        delay_days   = random.choices([0, 1, 2, 3, 4, 5], weights=[45, 25, 15, 8, 4, 3])[0]
+        actual_date  = planned_date + timedelta(days=delay_days)
+
+        pending_orders_count = random.randint(5, 80)
+        inventory_level      = random.uniform(0.2, 1.0)
+        dock_utilization     = random.uniform(0.3, 1.0)
+        is_month_end         = 1 if planned_date.day >= 25 else 0
+        distance_km          = destination["distance_km"]
+
+        demurrage_cost = round(delay_days * num_wagons * DEMURRAGE_RATE_PER_DAY, 2)
+        freight_cost   = round(quantity * distance_km * FREIGHT_RATE_PER_KM_PER_TONNE, 2)
+        total_cost     = round(freight_cost + demurrage_cost, 2)
+
+        records.append({
+            "dispatch_id":           f"DISP{2000 + i}",
+            "product":               product,
+            "wagon_type":            wagon_type["type"],
+            "num_wagons":            num_wagons,
+            "quantity_tonnes":       quantity,
+            "fill_percentage":       fill_pct,
+            "destination_id":        destination["id"],
+            "destination_city":      destination["city"],
+            "distance_km":           distance_km,
+            "planned_dispatch_date": planned_date.date(),
+            "actual_dispatch_date":  actual_date.date(),
+            "delay_days":            delay_days,
+            "is_delayed":            1 if delay_days > 0 else 0,
+            "pending_orders_count":  pending_orders_count,
+            "inventory_level":       round(inventory_level, 3),
+            "dock_utilization":      round(dock_utilization, 3),
+            "is_month_end":          is_month_end,
+            "demurrage_cost":        demurrage_cost,
+            "freight_cost":          freight_cost,
+            "total_cost":            total_cost,
+        })
+
+    df = pd.DataFrame(records)
+    print(f" Historical Dispatch Log: {len(df)} records")
+    return df
+
+
+
+if __name__ == "__main__":
+    output_dir = os.path.join(os.path.dirname(__file__), "synthetic_data")
+    os.makedirs(output_dir, exist_ok=True)
+
+    print("\n Generating SAIL RakeAI Synthetic Data...\n")
+
+    dfs = {
+        "stockyard_inventory.csv":   generate_stockyard_inventory(),
+        "customer_orders.csv":       generate_customer_orders(300),
+        "rake_availability.csv":     generate_rake_availability(60),
+        "loading_dock_schedule.csv": generate_loading_dock_schedule(30),
+        "historical_dispatch.csv":   generate_historical_dispatch(500),
+        "product_wagon_matrix.csv":  generate_product_wagon_matrix(),
+    }
+
+    for filename, df in dfs.items():
+        path = os.path.join(output_dir, filename)
+        df.to_csv(path, index=False)
+        print(f"    Saved → {path}")
+
+    print("\nAll data files generated successfully!")
+    print(f" Location: {output_dir}")
+    print("\nFiles created:")
+    for filename in dfs:
+        print(f"   • {filename}")
