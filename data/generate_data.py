@@ -182,7 +182,7 @@ def generate_product_wagon_matrix():
     return df
 
 
-def generate_historical_dispatch(n=500):
+def generate_historical_dispatch(n=2000):
     records = []
 
     for i in range(n):
@@ -193,16 +193,76 @@ def generate_historical_dispatch(n=500):
         quantity     = round(num_wagons * wagon_type["capacity_tonnes"] * random.uniform(0.7, 1.0), 2)
         fill_pct     = round((quantity / (num_wagons * wagon_type["capacity_tonnes"])) * 100, 2)
 
-        planned_date = datetime(2023, 1, 1) + timedelta(days=random.randint(0, 364))
-        delay_days   = random.choices([0, 1, 2, 3, 4, 5], weights=[45, 25, 15, 8, 4, 3])[0]
-        actual_date  = planned_date + timedelta(days=delay_days)
-
+        planned_date         = datetime(2023, 1, 1) + timedelta(days=random.randint(0, 364))
         pending_orders_count = random.randint(5, 80)
         inventory_level      = random.uniform(0.2, 1.0)
         dock_utilization     = random.uniform(0.3, 1.0)
         is_month_end         = 1 if planned_date.day >= 25 else 0
+        day_of_week          = planned_date.weekday()   
+        month                = planned_date.month
         distance_km          = destination["distance_km"]
 
+        
+        delay_probability = 0.15  
+
+        # Month end rush  more delays
+        if is_month_end:
+            delay_probability += 0.30
+
+        # Busy dock  more delays
+        if dock_utilization > 0.85:
+            delay_probability += 0.25
+        elif dock_utilization > 0.70:
+            delay_probability += 0.12
+
+        # Low inventory scrambling → delays
+        if inventory_level < 0.25:
+            delay_probability += 0.20
+        elif inventory_level < 0.40:
+            delay_probability += 0.10
+
+        # Too many pending orders system overloaded
+        if pending_orders_count > 65:
+            delay_probability += 0.18
+        elif pending_orders_count > 50:
+            delay_probability += 0.08
+
+        # Long distance more chances of delay
+        if distance_km > 1800:
+            delay_probability += 0.10
+        elif distance_km > 1200:
+            delay_probability += 0.05
+
+        # Weekend dispatches  less staff delays
+        if day_of_week >= 5:
+            delay_probability += 0.12
+
+        
+        if month in [3, 9, 12]:
+            delay_probability += 0.10
+
+        # Large quantity  harder to load  delays
+        if quantity > 2800:
+            delay_probability += 0.08
+
+        
+        delay_probability = min(delay_probability, 0.95)
+
+        # Determine if delayed
+        is_delayed = 1 if random.random() < delay_probability else 0
+
+        # Delay days based on severity of conditions
+        if is_delayed:
+            if delay_probability > 0.7:
+                delay_days = random.choices([1,2,3,4,5], weights=[15,25,30,20,10])[0]
+            elif delay_probability > 0.5:
+                delay_days = random.choices([1,2,3,4,5], weights=[30,35,20,10,5])[0]
+            else:
+                delay_days = random.choices([1,2,3,4,5], weights=[50,30,12,5,3])[0]
+        else:
+            delay_days = 0
+
+        actual_date    = planned_date + timedelta(days=delay_days)
         demurrage_cost = round(delay_days * num_wagons * DEMURRAGE_RATE_PER_DAY, 2)
         freight_cost   = round(quantity * distance_km * FREIGHT_RATE_PER_KM_PER_TONNE, 2)
         total_cost     = round(freight_cost + demurrage_cost, 2)
@@ -220,11 +280,13 @@ def generate_historical_dispatch(n=500):
             "planned_dispatch_date": planned_date.date(),
             "actual_dispatch_date":  actual_date.date(),
             "delay_days":            delay_days,
-            "is_delayed":            1 if delay_days > 0 else 0,
+            "is_delayed":            is_delayed,
             "pending_orders_count":  pending_orders_count,
             "inventory_level":       round(inventory_level, 3),
             "dock_utilization":      round(dock_utilization, 3),
             "is_month_end":          is_month_end,
+            "day_of_week":           day_of_week,
+            "month":                 month,
             "demurrage_cost":        demurrage_cost,
             "freight_cost":          freight_cost,
             "total_cost":            total_cost,
@@ -232,6 +294,7 @@ def generate_historical_dispatch(n=500):
 
     df = pd.DataFrame(records)
     print(f" Historical Dispatch Log: {len(df)} records")
+    print(f"   Delay rate: {df['is_delayed'].mean()*100:.1f}%")
     return df
 
 
