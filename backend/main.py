@@ -254,3 +254,75 @@ def dispatch_rake(rake_id: str, order_ids: str):
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+    
+
+@app.get("/alerts")
+def get_alerts():
+    try:
+        orders    = load_orders()
+        inventory = load_inventory()
+        plan_data = optimize_rake_plan(max_rakes=10)
+        alerts    = []
+        today     = datetime.now().date()
+        from datetime import timedelta
+
+        #Overdue orders
+        orders['deadline'] = pd.to_datetime(orders['deadline']).dt.date
+        overdue = orders[orders['deadline'] <= today]
+        if len(overdue) > 0:
+            alerts.append({
+                "type":   "danger",
+                "title":  f"{len(overdue)} orders have passed deadline",
+                "detail": f"Orders: {', '.join(overdue['order_id'].head(3).tolist())}"
+            })
+
+        # Due tomorrow
+        tomorrow     = today + timedelta(days=1)
+        due_tomorrow = orders[orders['deadline'] == tomorrow]
+        if len(due_tomorrow) > 0:
+            alerts.append({
+                "type":   "warning",
+                "title":  f"{len(due_tomorrow)} orders due tomorrow",
+                "detail": f"Priorities: {', '.join(due_tomorrow['priority'].unique().tolist())}"
+            })
+
+        #  Low inventory
+        low_stock = inventory[inventory['quantity_tonnes'] < 300]
+        if len(low_stock) > 0:
+            alerts.append({
+                "type":   "warning",
+                "title":  f"Low stock: {len(low_stock)} items below 300T",
+                "detail": f"{low_stock.iloc[0]['product']} at {low_stock.iloc[0]['stockyard_name']}"
+            })
+
+       
+        if len(plan_data) > 0 and plan_data['fill_percentage'].mean() >= 90:
+            alerts.append({
+                "type":   "success",
+                "title":  f"Excellent fill rate: {plan_data['fill_percentage'].mean():.1f}%",
+                "detail": "All rakes optimally loaded above target"
+            })
+
+        # ACritical unassigned
+        critical_orders = orders[orders['priority'] == 'Critical']
+        if len(plan_data) > 0:
+            assigned_ids = []
+            for ids in plan_data['order_ids']:
+                assigned_ids.extend([i.strip() for i in ids.split(',')])
+            unassigned = critical_orders[
+                ~critical_orders['order_id'].isin(assigned_ids)
+            ]
+            if len(unassigned) > 0:
+                alerts.append({
+                    "type":   "danger",
+                    "title":  f"{len(unassigned)} Critical orders not assigned to any rake",
+                    "detail": "Immediate action required"
+                })
+
+        return {
+            "status":       "success",
+            "total_alerts": len(alerts),
+            "alerts":       alerts
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
