@@ -6,6 +6,7 @@ import numpy as np
 import joblib
 import sys
 import os
+import random
 
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -94,10 +95,10 @@ def get_orders():
                 'num_wagons':            40,
                 'quantity_tonnes':       row['quantity_tonnes'],
                 'distance_km':           row['distance_km'],
-                'pending_orders_count':  30,
-                'inventory_level':       0.6,
-                'dock_utilization':      0.5,
-                'is_month_end':          0,
+                'pending_orders_count':  len(orders),
+                'inventory_level':       round(random.uniform(0.2, 1.0), 2),
+                'dock_utilization':      round(random.uniform(0.3, 1.0), 2),
+                'is_month_end':          1 if datetime.now().day >= 25 else 0,
                 'fill_percentage':       85.0,
                 'day_of_week':           datetime.now().weekday(),
                 'month':                 datetime.now().month,
@@ -106,7 +107,8 @@ def get_orders():
             } for _, row in orders.iterrows()])
 
             probs = model.predict_proba(feature_data[features])[:, 1]
-            orders['delay_risk'] = (probs * 100).round(1)
+            orders['delay_risk'] = (probs.astype(float) * 100).round(1)
+
         except:
             orders['delay_risk'] = 30.0
 
@@ -205,3 +207,28 @@ def get_summary():
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+
+
+@app.post("/dispatch-order/{order_id}")
+def dispatch_order(order_id: str):
+    try:
+        path   = os.path.join(DATA_DIR, 'customer_orders.csv')
+        orders = pd.read_csv(path)
+        
+        if order_id not in orders['order_id'].values:
+            return {"status": "error", "message": "Order not found"}
+        
+        orders.loc[orders['order_id'] == order_id, 'status'] = 'Dispatched'
+        orders.to_csv(path, index=False)
+        
+        remaining = len(orders[orders['status'] == 'Pending'])
+        
+        return {
+            "status":          "success",
+            "message":         f"{order_id} marked as dispatched",
+            "remaining_orders": remaining
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
