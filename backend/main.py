@@ -232,3 +232,25 @@ def dispatch_order(order_id: str):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+
+@app.post("/dispatch-rake/{rake_id}")
+def dispatch_rake(rake_id: str, order_ids: str):
+    
+    try:
+        path   = os.path.join(DATA_DIR, 'customer_orders.csv')
+        orders = pd.read_csv(path)
+        
+        ids = [oid.strip() for oid in order_ids.split(',')]
+        orders.loc[orders['order_id'].isin(ids), 'status'] = 'Dispatched'
+        orders.to_csv(path, index=False)
+        
+        remaining = len(orders[orders['status'] == 'Pending'])
+        
+        return {
+            "status":           "success",
+            "message":          f"Rake {rake_id} dispatched — {len(ids)} orders completed",
+            "orders_dispatched": len(ids),
+            "remaining_orders":  remaining
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
