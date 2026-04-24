@@ -318,3 +318,35 @@ def get_alerts():
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+    
+
+@app.get("/cost-savings")
+def get_cost_savings():
+    try:
+        plan = optimize_rake_plan(max_rakes=10)
+        if len(plan) == 0:
+            return {"status": "error", "message": "No plan available"}
+
+        actual_fill    = float(plan['fill_percentage'].mean())
+        actual_cost    = float(plan['total_cost'].sum())
+        manual_fill    = 70.0
+        
+        # Manual cost = actual cost scaled by fill difference
+        manual_cost    = actual_cost * (actual_fill / manual_fill)
+        savings        = manual_cost - actual_cost
+        efficiency     = round(actual_fill - manual_fill, 1)
+
+        return {
+            "status": "success",
+            "actual_fill":    round(actual_fill, 1),
+            "manual_fill":    manual_fill,
+            "actual_cost":    round(actual_cost, 2),
+            "manual_cost":    round(manual_cost, 2),
+            "total_savings":  round(savings, 2),
+            "efficiency_gain": efficiency,
+            "savings_crore":  round(savings / 10000000, 2),
+            "manual_crore":   round(manual_cost / 10000000, 2),
+            "actual_crore":   round(actual_cost / 10000000, 2),
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
