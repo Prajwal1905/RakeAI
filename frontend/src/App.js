@@ -361,6 +361,116 @@ function Forecast({ forecast }) {
     </div>
   );
 }
+function SavingsCard({ savings }) {
+  if (!savings || savings.status !== 'success') return null;
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+      border: '1px solid #10b98144',
+      borderRadius: 12,
+      padding: 20,
+      marginBottom: 20
+    }}>
+      <div style={{
+        fontSize: 13,
+        color: '#10b981',
+        fontWeight: 700,
+        marginBottom: 16,
+        letterSpacing: 1
+      }}>
+        COST SAVINGS CALCULATOR — TODAY
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr 1fr',
+        gap: 12,
+        marginBottom: 16
+      }}>
+        {/* Manual */}
+        <div style={{
+          background: '#ef444415',
+          border: '1px solid #ef444433',
+          borderRadius: 10,
+          padding: '14px 16px'
+        }}>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
+            Manual Planning
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
+            Industry avg fill: {savings.manual_fill}%
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>
+            ₹{savings.manual_crore} Cr
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+            estimated cost
+          </div>
+        </div>
+
+        {/* RakeAI */}
+        <div style={{
+          background: '#10b98115',
+          border: '1px solid #10b98133',
+          borderRadius: 10,
+          padding: '14px 16px'
+        }}>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
+            RakeAI Optimizer
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
+            Achieved fill: {savings.actual_fill}%
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981' }}>
+            ₹{savings.actual_crore} Cr
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+            actual cost
+          </div>
+        </div>
+
+        {/* Savings */}
+        <div style={{
+          background: '#3b82f615',
+          border: '1px solid #3b82f633',
+          borderRadius: 10,
+          padding: '14px 16px'
+        }}>
+          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
+            Today's Saving
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
+            Efficiency gain: +{savings.efficiency_gain}%
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6' }}>
+            ₹{savings.savings_crore} Cr
+          </div>
+          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+            saved today
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div style={{
+        background: '#10b98122',
+        borderRadius: 8,
+        padding: '10px 16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <span style={{ color: '#94a3b8', fontSize: 12 }}>
+          Annual projection at current efficiency
+        </span>
+        <span style={{ color: '#10b981', fontWeight: 800, fontSize: 16 }}>
+          ₹{(savings.savings_crore * 365).toFixed(0)} Cr / year saved
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function AlertBanner({ alerts }) {
   if (!alerts || alerts.length === 0) return null;
@@ -419,22 +529,25 @@ export default function App() {
   const [forecast, setForecast] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alerts, setAlerts] = useState([]);
+  const [savings, setSavings] = useState(null);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [s, p, o, f, a] = await Promise.all([
+      const [s, p, o, f, a, sv] = await Promise.all([
         axios.get(`${API}/summary`),
         axios.get(`${API}/rake-plan`),
         axios.get(`${API}/orders`),
         axios.get(`${API}/forecast`),
         axios.get(`${API}/alerts`),
+        axios.get(`${API}/cost-savings`),
       ]);
       setSummary(s.data.summary);
       setPlan(p.data);
       setOrders(o.data);
       setForecast(f.data);
       setAlerts(a.data.alerts || []);
+      setSavings(sv.data);
     } catch (e) {
       console.error('API error:', e);
     }
@@ -550,6 +663,7 @@ export default function App() {
         {page === 'dashboard' && (
           <>
             <AlertBanner alerts={alerts} />
+            <SavingsCard savings={savings} />
             <Dashboard summary={summary} />
           </>
         )}
