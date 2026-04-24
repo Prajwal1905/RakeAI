@@ -350,3 +350,83 @@ def get_cost_savings():
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+    
+
+@app.get("/whatif")
+def whatif_analysis(rake_id: str, delay_days: int = 1):
+    try:
+        plan      = optimize_rake_plan(max_rakes=10)
+        orders_df = load_orders()
+
+        if len(plan) == 0:
+            return {"status": "error", "message": "No plan available"}
+
+        rake_row = plan[plan['rake_id'] == rake_id]
+        if len(rake_row) == 0:
+            return {"status": "error", "message": f"{rake_id} not found in plan"}
+
+        rake = rake_row.iloc[0]
+
+        # Get orders in this rake
+        order_ids = [o.strip() for o in rake['order_ids'].split(',')]
+        affected  = orders_df[orders_df['order_id'].isin(order_ids)]
+
+        # Calculate extra demurrage
+        extra_demurrage = round(
+            delay_days * int(rake['num_wagons']) * 15000, 2
+        )
+
+        # Check which orders miss deadline
+        today = datetime.now().date()
+        from datetime import timedelta
+        new_dispatch = today + timedelta(days=delay_days)
+
+        missed_deadlines = []
+        safe_orders      = []
+
+        for _, order in affected.iterrows():
+            deadline = pd.to_datetime(order['deadline']).date()
+            if new_dispatch > deadline:
+                missed_deadlines.append({
+                    "order_id": order['order_id'],
+                    "product":  order['product'],
+                    "priority": order['priority'],
+                    "deadline": str(deadline),
+                    "penalty":  int(delay_days * {
+                        "Critical": 50000,
+                        "High":     30000,
+                        "Medium":   15000,
+                        "Low":      5000
+                    }.get(order['priority'], 5000))
+                })
+            else:
+                safe_orders.append(order['order_id'])
+
+        total_penalty = sum([o['penalty'] for o in missed_deadlines])
+        total_impact  = extra_demurrage + total_penalty
+
+        
+        if total_impact > 500000:
+            recommendation = "AVOID delay — high financial impact. Prioritize this rake."
+        elif len(missed_deadlines) > 0:
+            recommendation = "CAUTION — some orders will miss deadline. Try to minimize delay."
+        else:
+            recommendation = "SAFE to delay — no orders will miss deadline."
+
+        return {
+            "status":           "success",
+            "rake_id":          rake_id,
+            "delay_days":       delay_days,
+            "num_wagons":       int(rake['num_wagons']),
+            "orders_affected":  len(order_ids),
+            "missed_deadlines": len(missed_deadlines),
+            "safe_orders":      len(safe_orders),
+            "extra_demurrage":  extra_demurrage,
+            "total_penalty":    total_penalty,
+            "total_impact":     total_impact,
+            "total_impact_lakh": round(total_impact / 100000, 2),
+            "missed_orders":    missed_deadlines,
+            "recommendation":   recommendation
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

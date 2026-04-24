@@ -472,6 +472,213 @@ function SavingsCard({ savings }) {
   );
 }
 
+function WhatIf() {
+  const [rakeId, setRakeId] = useState('RK105');
+  const [delayDays, setDelayDays] = useState(1);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const runAnalysis = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `${API}/whatif?rake_id=${rakeId}&delay_days=${delayDays}`
+      );
+      setResult(res.data);
+    } catch (e) {
+      alert('Error running analysis');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div>
+      <SectionTitle
+        title="What-If Simulator"
+        sub="Analyze financial impact of rake delays before they happen"
+      />
+
+      
+      <div style={{
+        background: '#1e293b',
+        borderRadius: 12,
+        padding: 24,
+        marginBottom: 20
+      }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr auto',
+          gap: 16,
+          alignItems: 'end'
+        }}>
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>
+              Rake ID
+            </label>
+            <input
+              value={rakeId}
+              onChange={e => setRakeId(e.target.value)}
+              placeholder="e.g. RK105"
+              style={{
+                width: '100%',
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: 8,
+                padding: '10px 14px',
+                color: '#f1f5f9',
+                fontSize: 14
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>
+              Delay Days
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={delayDays}
+              onChange={e => setDelayDays(parseInt(e.target.value))}
+              style={{
+                width: '100%',
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: 8,
+                padding: '10px 14px',
+                color: '#f1f5f9',
+                fontSize: 14
+              }}
+            />
+          </div>
+          <button
+            onClick={runAnalysis}
+            disabled={loading}
+            style={{
+              background: '#3b82f6',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              padding: '10px 24px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: 14
+            }}
+          >
+            {loading ? 'Analyzing...' : 'Run Analysis'}
+          </button>
+        </div>
+      </div>
+
+      
+      {result && result.status === 'success' && (
+        <div>
+          
+          <div style={{
+            background: result.total_impact > 500000 ? '#ef444420' : '#f59e0b20',
+            border: `1px solid ${result.total_impact > 500000 ? '#ef4444' : '#f59e0b'}`,
+            borderRadius: 10,
+            padding: '14px 18px',
+            marginBottom: 16,
+            fontSize: 14,
+            fontWeight: 700,
+            color: result.total_impact > 500000 ? '#ef4444' : '#f59e0b'
+          }}>
+            {result.recommendation}
+          </div>
+
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 12,
+            marginBottom: 20
+          }}>
+            {[
+              { label: 'Orders Affected', value: result.orders_affected, color: '#3b82f6' },
+              { label: 'Missed Deadlines', value: result.missed_deadlines, color: '#ef4444' },
+              { label: 'Extra Demurrage', value: `₹${(result.extra_demurrage / 100000).toFixed(1)}L`, color: '#f59e0b' },
+              { label: 'Total Impact', value: `₹${result.total_impact_lakh}L`, color: '#ef4444' },
+            ].map((item, i) => (
+              <div key={i} style={{
+                background: '#1e293b',
+                borderRadius: 10,
+                padding: '16px',
+                borderTop: `3px solid ${item.color}`
+              }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>{item.label}</div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: item.color }}>{item.value}</div>
+              </div>
+            ))}
+          </div>
+
+          
+          {result.missed_orders.length > 0 && (
+            <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 14 }}>
+                Orders That Will Miss Deadline
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#0f172a' }}>
+                    {['Order ID', 'Product', 'Priority', 'Deadline', 'Penalty'].map(h => (
+                      <th key={h} style={{
+                        padding: '10px 14px',
+                        textAlign: 'left',
+                        color: '#64748b',
+                        fontWeight: 600,
+                        borderBottom: '1px solid #334155'
+                      }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.missed_orders.map((row, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #0f172a' }}>
+                      <td style={{ padding: '10px 14px', color: '#3b82f6', fontWeight: 600 }}>{row.order_id}</td>
+                      <td style={{ padding: '10px 14px', color: '#f1f5f9' }}>{row.product}</td>
+                      <td style={{ padding: '10px 14px' }}><Badge text={row.priority} /></td>
+                      <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.deadline}</td>
+                      <td style={{ padding: '10px 14px', color: '#ef4444', fontWeight: 700 }}>
+                        ₹{row.penalty.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{
+                marginTop: 12,
+                padding: '10px 14px',
+                background: '#ef444415',
+                borderRadius: 8,
+                display: 'flex',
+                justifyContent: 'space-between'
+              }}>
+                <span style={{ color: '#94a3b8', fontSize: 13 }}>Total Penalty Cost</span>
+                <span style={{ color: '#ef4444', fontWeight: 800 }}>
+                  ₹{result.total_penalty.toLocaleString()}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {result && result.status === 'error' && (
+        <div style={{
+          background: '#ef444420',
+          border: '1px solid #ef4444',
+          borderRadius: 8,
+          padding: '14px 18px',
+          color: '#ef4444'
+        }}>
+          {result.message}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AlertBanner({ alerts }) {
   if (!alerts || alerts.length === 0) return null;
 
@@ -561,6 +768,7 @@ export default function App() {
     { id: 'rakeplan', label: 'Rake Plan', icon: Train },
     { id: 'orders', label: 'Orders', icon: Package },
     { id: 'forecast', label: 'Forecast', icon: BarChart },
+    { id: 'whatif', label: 'What-If', icon: AlertTriangle },
   ];
 
   return (
@@ -670,6 +878,7 @@ export default function App() {
         {page === 'rakeplan' && <RakePlan plan={plan} onRefresh={fetchAll} />}
         {page === 'orders' && <Orders orders={orders} />}
         {page === 'forecast' && <Forecast forecast={forecast} />}
+        {page === 'whatif' && <WhatIf />}
       </div>
     </div>
   );
