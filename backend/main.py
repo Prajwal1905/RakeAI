@@ -430,3 +430,58 @@ def whatif_analysis(rake_id: str, delay_days: int = 1):
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+    
+@app.get("/reorder-alerts")
+def get_reorder_alerts():
+    try:
+        inventory    = load_inventory()
+        forecast_path = os.path.join(MODELS_DIR, 'next_7_day_forecast.csv')
+        forecast_df  = pd.read_csv(forecast_path)
+
+        alerts = []
+
+        for product in inventory['product'].unique():
+            # Total stock across all stockyards
+            total_stock = float(inventory[
+                inventory['product'] == product
+            ]['quantity_tonnes'].sum())
+
+            # Daily demand from forecast
+            if product in forecast_df.columns:
+                daily_demand = float(forecast_df[product].mean())
+            else:
+                daily_demand = 500.0
+
+            # Days until stockout
+            days_left = round(total_stock / daily_demand, 1) if daily_demand > 0 else 999
+
+            
+            if days_left <= 2:
+                status = "critical"
+            elif days_left <= 5:
+                status = "warning"
+            else:
+                status = "safe"
+
+            alerts.append({
+                "product":      product,
+                "total_stock":  round(total_stock, 2),
+                "daily_demand": round(daily_demand, 2),
+                "days_left":    days_left,
+                "status":       status,
+                "reorder_qty":  round(daily_demand * 7, 2)
+            })
+
+        
+        alerts.sort(key=lambda x: x['days_left'])
+
+        return {
+            "status":        "success",
+            "total_products": len(alerts),
+            "critical":      len([a for a in alerts if a['status'] == 'critical']),
+            "warning":       len([a for a in alerts if a['status'] == 'warning']),
+            "safe":          len([a for a in alerts if a['status'] == 'safe']),
+            "alerts":        alerts
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

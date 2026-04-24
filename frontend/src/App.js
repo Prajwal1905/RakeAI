@@ -156,7 +156,7 @@ function Dashboard({ summary }) {
   );
 }
 
-function RakePlan({ plan }) {
+function RakePlan({ plan, onRefresh }) {
   if (!plan) return <div style={{ color: '#64748b' }}>Loading rake plan...</div>;
 
   return (
@@ -679,6 +679,112 @@ function WhatIf() {
   );
 }
 
+function ReorderAlerts({ reorder }) {
+  if (!reorder) return <div style={{ color: '#64748b' }}>Loading...</div>;
+
+  const colorMap = {
+    critical: { bg: '#ef444420', border: '#ef4444', text: '#ef4444', label: 'CRITICAL' },
+    warning:  { bg: '#f59e0b20', border: '#f59e0b', text: '#f59e0b', label: 'WARNING'  },
+    safe:     { bg: '#10b98120', border: '#10b981', text: '#10b981', label: 'SAFE'     },
+  };
+
+  return (
+    <div>
+      <SectionTitle
+        title="Smart Reorder Alerts"
+        sub="AI predicts stockout days based on demand forecast"
+      />
+
+      
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 12,
+        marginBottom: 20
+      }}>
+        {[
+          { label: 'Critical Products', value: reorder.critical, color: '#ef4444' },
+          { label: 'Warning Products',  value: reorder.warning,  color: '#f59e0b' },
+          { label: 'Safe Products',     value: reorder.safe,     color: '#10b981' },
+        ].map((item, i) => (
+          <div key={i} style={{
+            background:   '#1e293b',
+            borderRadius: 10,
+            padding:      '16px 20px',
+            borderTop:    `3px solid ${item.color}`
+          }}>
+            <div style={{ fontSize: 28, fontWeight: 800, color: item.color }}>
+              {item.value}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{item.label}</div>
+          </div>
+        ))}
+      </div>
+
+      
+      <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: '#0f172a' }}>
+              {['Product', 'Current Stock', 'Daily Demand', 'Days Left', 'Reorder Qty', 'Status'].map(h => (
+                <th key={h} style={{
+                  padding:      '12px 14px',
+                  textAlign:    'left',
+                  color:        '#64748b',
+                  fontWeight:   600,
+                  borderBottom: '1px solid #334155'
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {reorder.alerts.map((row, i) => {
+              const c = colorMap[row.status];
+              return (
+                <tr key={i} style={{
+                  borderBottom: '1px solid #0f172a',
+                  background:   i % 2 === 0 ? '#0f172a' : '#111827'
+                }}>
+                  <td style={{ padding: '11px 14px', color: '#f1f5f9', fontWeight: 600 }}>
+                    {row.product}
+                  </td>
+                  <td style={{ padding: '11px 14px', color: '#94a3b8' }}>
+                    {row.total_stock.toLocaleString()} T
+                  </td>
+                  <td style={{ padding: '11px 14px', color: '#94a3b8' }}>
+                    {row.daily_demand.toLocaleString()} T/day
+                  </td>
+                  <td style={{ padding: '11px 14px' }}>
+                    <span style={{ color: c.text, fontWeight: 700 }}>
+                      {row.days_left} days
+                    </span>
+                  </td>
+                  <td style={{ padding: '11px 14px', color: '#3b82f6', fontWeight: 600 }}>
+                    {row.reorder_qty.toLocaleString()} T
+                  </td>
+                  <td style={{ padding: '11px 14px' }}>
+                    <span style={{
+                      background:   c.bg,
+                      color:        c.text,
+                      border:       `1px solid ${c.border}`,
+                      borderRadius: 20,
+                      padding:      '2px 10px',
+                      fontSize:     11,
+                      fontWeight:   700
+                    }}>
+                      {c.label}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function AlertBanner({ alerts }) {
   if (!alerts || alerts.length === 0) return null;
 
@@ -737,17 +843,19 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [savings, setSavings] = useState(null);
+  const [reorder, setReorder] = useState(null);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [s, p, o, f, a, sv] = await Promise.all([
+      const [s, p, o, f, a, sv, rr] = await Promise.all([
         axios.get(`${API}/summary`),
         axios.get(`${API}/rake-plan`),
         axios.get(`${API}/orders`),
         axios.get(`${API}/forecast`),
         axios.get(`${API}/alerts`),
         axios.get(`${API}/cost-savings`),
+        axios.get(`${API}/reorder-alerts`),
       ]);
       setSummary(s.data.summary);
       setPlan(p.data);
@@ -755,6 +863,7 @@ export default function App() {
       setForecast(f.data);
       setAlerts(a.data.alerts || []);
       setSavings(sv.data);
+      setReorder(rr.data);
     } catch (e) {
       console.error('API error:', e);
     }
@@ -769,6 +878,7 @@ export default function App() {
     { id: 'orders', label: 'Orders', icon: Package },
     { id: 'forecast', label: 'Forecast', icon: BarChart },
     { id: 'whatif', label: 'What-If', icon: AlertTriangle },
+    { id: 'reorder', label: 'Reorder', icon: Package },
   ];
 
   return (
@@ -879,6 +989,7 @@ export default function App() {
         {page === 'orders' && <Orders orders={orders} />}
         {page === 'forecast' && <Forecast forecast={forecast} />}
         {page === 'whatif' && <WhatIf />}
+        {page === 'reorder' && <ReorderAlerts reorder={reorder} />}
       </div>
     </div>
   );
