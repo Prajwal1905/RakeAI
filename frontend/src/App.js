@@ -100,7 +100,7 @@ function Dashboard({ summary }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        
+
         <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
           <SectionTitle title="Today's Cost Summary" />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -125,7 +125,7 @@ function Dashboard({ summary }) {
           </div>
         </div>
 
-        
+
         <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
           <SectionTitle title="Fill % vs Target" sub="Target: 85% | Achieved today" />
           <ResponsiveContainer width="100%" height={180}>
@@ -237,7 +237,7 @@ function Orders({ orders }) {
         sub={`${orders.total_orders} total | ${orders.critical} critical | ${orders.high} high priority`}
       />
 
-      
+
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {priorities.map(p => (
           <button key={p} onClick={() => setFilter(p)} style={{
@@ -305,7 +305,7 @@ function Forecast({ forecast }) {
     product,
     total: Math.round(forecast.forecast[product].total),
     daily: Math.round(forecast.forecast[product].avg)
-  })):[];
+  })) : [];
 
   return (
     <div>
@@ -336,7 +336,7 @@ function Forecast({ forecast }) {
         </ResponsiveContainer>
       </div>
 
-      
+
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4, 1fr)',
@@ -362,6 +362,54 @@ function Forecast({ forecast }) {
   );
 }
 
+function AlertBanner({ alerts }) {
+  if (!alerts || alerts.length === 0) return null;
+
+  const colorMap = {
+    danger: { bg: '#ef444420', border: '#ef4444', text: '#ef4444' },
+    warning: { bg: '#f59e0b20', border: '#f59e0b', text: '#f59e0b' },
+    success: { bg: '#1e293b', border: '#334155', text: '#64748b' },
+  };
+
+  return (
+    <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {alerts.map((alert, i) => {
+        const c = colorMap[alert.type] || colorMap.warning;
+        return (
+          <div key={i} style={{
+            background: c.bg,
+            border: `1px solid ${c.border}`,
+            borderLeft: `4px solid ${c.border}`,
+            borderRadius: 8,
+            padding: '10px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div>
+              <div style={{ color: c.text, fontWeight: 700, fontSize: 13 }}>
+                {alert.title}
+              </div>
+              <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 2 }}>
+                {alert.detail}
+              </div>
+            </div>
+            <span style={{
+              background: c.border,
+              color: '#fff',
+              fontSize: 10,
+              fontWeight: 700,
+              padding: '2px 10px',
+              borderRadius: 20
+            }}>
+              {alert.type.toUpperCase()}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function App() {
   const [page, setPage] = useState('dashboard');
@@ -370,20 +418,23 @@ export default function App() {
   const [orders, setOrders] = useState(null);
   const [forecast, setForecast] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [alerts, setAlerts] = useState([]);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [s, p, o, f] = await Promise.all([
+      const [s, p, o, f, a] = await Promise.all([
         axios.get(`${API}/summary`),
         axios.get(`${API}/rake-plan`),
         axios.get(`${API}/orders`),
         axios.get(`${API}/forecast`),
+        axios.get(`${API}/alerts`),
       ]);
       setSummary(s.data.summary);
       setPlan(p.data);
       setOrders(o.data);
       setForecast(f.data);
+      setAlerts(a.data.alerts || []);
     } catch (e) {
       console.error('API error:', e);
     }
@@ -401,7 +452,7 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      
+
       <div style={{
         width: 220,
         background: '#1e293b',
@@ -411,7 +462,7 @@ export default function App() {
         gap: 4,
         borderRight: '1px solid #334155'
       }}>
-        
+
         <div style={{ marginBottom: 28, paddingLeft: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Train size={24} color="#3b82f6" />
@@ -422,7 +473,7 @@ export default function App() {
           </div>
         </div>
 
-       
+
         {navItems.map(({ id, label, icon: Icon }) => (
           <button key={id} onClick={() => setPage(id)} style={{
             display: 'flex',
@@ -444,7 +495,7 @@ export default function App() {
           </button>
         ))}
 
-        
+
         <button onClick={fetchAll} style={{
           marginTop: 'auto',
           display: 'flex',
@@ -496,8 +547,13 @@ export default function App() {
         </div>
 
 
-        {page === 'dashboard' && <Dashboard summary={summary} />}
-        {page === 'rakeplan' && <RakePlan plan={plan} />}
+        {page === 'dashboard' && (
+          <>
+            <AlertBanner alerts={alerts} />
+            <Dashboard summary={summary} />
+          </>
+        )}
+        {page === 'rakeplan' && <RakePlan plan={plan} onRefresh={fetchAll} />}
         {page === 'orders' && <Orders orders={orders} />}
         {page === 'forecast' && <Forecast forecast={forecast} />}
       </div>

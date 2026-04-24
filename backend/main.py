@@ -266,15 +266,7 @@ def get_alerts():
         today     = datetime.now().date()
         from datetime import timedelta
 
-        #Overdue orders
-        orders['deadline'] = pd.to_datetime(orders['deadline']).dt.date
-        overdue = orders[orders['deadline'] <= today]
-        if len(overdue) > 0:
-            alerts.append({
-                "type":   "danger",
-                "title":  f"{len(overdue)} orders have passed deadline",
-                "detail": f"Orders: {', '.join(overdue['order_id'].head(3).tolist())}"
-            })
+        
 
         # Due tomorrow
         tomorrow     = today + timedelta(days=1)
