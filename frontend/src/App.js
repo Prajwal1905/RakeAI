@@ -159,6 +159,20 @@ function Dashboard({ summary }) {
 function RakePlan({ plan, onRefresh }) {
   if (!plan) return <div style={{ color: '#64748b' }}>Loading rake plan...</div>;
 
+  const handleDispatch = async (rakeId, orderIds) => {
+    if (!window.confirm(`Dispatch ${rakeId}? This will mark all orders as completed.`))
+      return;
+    try {
+      await axios.post(
+        `${API}/dispatch-rake/${rakeId}?order_ids=${encodeURIComponent(orderIds)}`
+      );
+      alert(`✅ ${rakeId} dispatched! Orders removed from pending list.`);
+      onRefresh();
+    } catch (e) {
+      alert('Error dispatching rake');
+    }
+  };
+
   return (
     <div>
       <SectionTitle
@@ -169,7 +183,7 @@ function RakePlan({ plan, onRefresh }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: '#1e293b' }}>
-              {['Rake ID', 'Wagon', 'Destination', 'Products', 'Orders', 'Quantity', 'Fill %', 'Delay Risk', 'Cost', 'Status'].map(h => (
+              {['Rake ID', 'Wagon', 'Destination', 'Products', 'Orders', 'Quantity', 'Fill %', 'Delay Risk', 'Cost', 'Action'].map(h => (
                 <th key={h} style={{
                   padding: '12px 14px',
                   textAlign: 'left',
@@ -211,7 +225,23 @@ function RakePlan({ plan, onRefresh }) {
                 <td style={{ padding: '11px 14px', color: '#f59e0b' }}>
                   ₹{(row.total_cost / 100000).toFixed(1)}L
                 </td>
-                <td style={{ padding: '11px 14px' }}><Badge text={row.status} /></td>
+                <td style={{ padding: '11px 14px' }}>
+                  <button
+                    onClick={() => handleDispatch(row.rake_id, row.order_ids)}
+                    style={{
+                      background: '#10b98122',
+                      color: '#10b981',
+                      border: '1px solid #10b98144',
+                      borderRadius: 6,
+                      padding: '5px 14px',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 600
+                    }}
+                  >
+                    Dispatch
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -498,7 +528,7 @@ function WhatIf() {
         sub="Analyze financial impact of rake delays before they happen"
       />
 
-      
+
       <div style={{
         background: '#1e293b',
         borderRadius: 12,
@@ -570,10 +600,10 @@ function WhatIf() {
         </div>
       </div>
 
-      
+
       {result && result.status === 'success' && (
         <div>
-          
+
           <div style={{
             background: result.total_impact > 500000 ? '#ef444420' : '#f59e0b20',
             border: `1px solid ${result.total_impact > 500000 ? '#ef4444' : '#f59e0b'}`,
@@ -587,7 +617,7 @@ function WhatIf() {
             {result.recommendation}
           </div>
 
-          
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(4, 1fr)',
@@ -612,7 +642,7 @@ function WhatIf() {
             ))}
           </div>
 
-          
+
           {result.missed_orders.length > 0 && (
             <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 14 }}>
@@ -684,8 +714,8 @@ function ReorderAlerts({ reorder }) {
 
   const colorMap = {
     critical: { bg: '#ef444420', border: '#ef4444', text: '#ef4444', label: 'CRITICAL' },
-    warning:  { bg: '#f59e0b20', border: '#f59e0b', text: '#f59e0b', label: 'WARNING'  },
-    safe:     { bg: '#10b98120', border: '#10b981', text: '#10b981', label: 'SAFE'     },
+    warning: { bg: '#f59e0b20', border: '#f59e0b', text: '#f59e0b', label: 'WARNING' },
+    safe: { bg: '#10b98120', border: '#10b981', text: '#10b981', label: 'SAFE' },
   };
 
   return (
@@ -695,7 +725,7 @@ function ReorderAlerts({ reorder }) {
         sub="AI predicts stockout days based on demand forecast"
       />
 
-      
+
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)',
@@ -704,14 +734,14 @@ function ReorderAlerts({ reorder }) {
       }}>
         {[
           { label: 'Critical Products', value: reorder.critical, color: '#ef4444' },
-          { label: 'Warning Products',  value: reorder.warning,  color: '#f59e0b' },
-          { label: 'Safe Products',     value: reorder.safe,     color: '#10b981' },
+          { label: 'Warning Products', value: reorder.warning, color: '#f59e0b' },
+          { label: 'Safe Products', value: reorder.safe, color: '#10b981' },
         ].map((item, i) => (
           <div key={i} style={{
-            background:   '#1e293b',
+            background: '#1e293b',
             borderRadius: 10,
-            padding:      '16px 20px',
-            borderTop:    `3px solid ${item.color}`
+            padding: '16px 20px',
+            borderTop: `3px solid ${item.color}`
           }}>
             <div style={{ fontSize: 28, fontWeight: 800, color: item.color }}>
               {item.value}
@@ -721,17 +751,17 @@ function ReorderAlerts({ reorder }) {
         ))}
       </div>
 
-      
+
       <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: '#0f172a' }}>
               {['Product', 'Current Stock', 'Daily Demand', 'Days Left', 'Reorder Qty', 'Status'].map(h => (
                 <th key={h} style={{
-                  padding:      '12px 14px',
-                  textAlign:    'left',
-                  color:        '#64748b',
-                  fontWeight:   600,
+                  padding: '12px 14px',
+                  textAlign: 'left',
+                  color: '#64748b',
+                  fontWeight: 600,
                   borderBottom: '1px solid #334155'
                 }}>{h}</th>
               ))}
@@ -743,7 +773,7 @@ function ReorderAlerts({ reorder }) {
               return (
                 <tr key={i} style={{
                   borderBottom: '1px solid #0f172a',
-                  background:   i % 2 === 0 ? '#0f172a' : '#111827'
+                  background: i % 2 === 0 ? '#0f172a' : '#111827'
                 }}>
                   <td style={{ padding: '11px 14px', color: '#f1f5f9', fontWeight: 600 }}>
                     {row.product}
@@ -764,13 +794,13 @@ function ReorderAlerts({ reorder }) {
                   </td>
                   <td style={{ padding: '11px 14px' }}>
                     <span style={{
-                      background:   c.bg,
-                      color:        c.text,
-                      border:       `1px solid ${c.border}`,
+                      background: c.bg,
+                      color: c.text,
+                      border: `1px solid ${c.border}`,
                       borderRadius: 20,
-                      padding:      '2px 10px',
-                      fontSize:     11,
-                      fontWeight:   700
+                      padding: '2px 10px',
+                      fontSize: 11,
+                      fontWeight: 700
                     }}>
                       {c.label}
                     </span>
@@ -878,7 +908,7 @@ export default function App() {
     { id: 'orders', label: 'Orders', icon: Package },
     { id: 'forecast', label: 'Forecast', icon: BarChart },
     { id: 'whatif', label: 'What-If', icon: AlertTriangle },
-    { id: 'reorder', label: 'Reorder', icon: Package },
+    { id: 'reorder', label: 'Reorder', icon: AlertTriangle },
   ];
 
   return (
