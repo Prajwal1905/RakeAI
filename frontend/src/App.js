@@ -166,7 +166,7 @@ function RakePlan({ plan, onRefresh }) {
       await axios.post(
         `${API}/dispatch-rake/${rakeId}?order_ids=${encodeURIComponent(orderIds)}`
       );
-      alert(`✅ ${rakeId} dispatched! Orders removed from pending list.`);
+      alert(` ${rakeId} dispatched! Orders removed from pending list.`);
       onRefresh();
     } catch (e) {
       alert('Error dispatching rake');
@@ -864,6 +864,178 @@ function AlertBanner({ alerts }) {
   );
 }
 
+function WeeklyPerformance({ weekly }) {
+  if (!weekly) return <div style={{ color: '#64748b' }}>Loading...</div>;
+
+  const destData = Object.keys(weekly.top_destinations).map(k => ({
+    name: k, value: weekly.top_destinations[k]
+  }));
+
+  const productData = Object.keys(weekly.product_breakdown).map(k => ({
+    name: k, value: weekly.product_breakdown[k]
+  }));
+
+  return (
+    <div>
+      <SectionTitle
+        title="Weekly Performance Report"
+        sub="This week's logistics performance summary"
+      />
+
+     
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 12,
+        marginBottom: 20
+      }}>
+        {[
+          { label: 'Weekly Saving',    value: `₹${weekly.weekly_summary.total_saving_cr} Cr`, color: '#10b981' },
+          { label: 'Avg Fill %',       value: `${weekly.weekly_summary.avg_fill_pct}%`,        color: '#3b82f6' },
+          { label: 'Orders Completed', value: weekly.weekly_summary.total_orders,              color: '#f59e0b' },
+          { label: 'Rakes Dispatched', value: weekly.weekly_summary.total_rakes,               color: '#8b5cf6' },
+        ].map((item, i) => (
+          <div key={i} style={{
+            background:   '#1e293b',
+            borderRadius: 10,
+            padding:      '16px 20px',
+            borderTop:    `3px solid ${item.color}`
+          }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: item.color }}>
+              {item.value}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{item.label}</div>
+          </div>
+        ))}
+      </div>
+
+      
+      <div style={{ background: '#1e293b', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
+          Daily Fill % This Week
+        </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={weekly.daily_performance}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+            <XAxis dataKey="day" stroke="#64748b" />
+            <YAxis domain={[80, 100]} stroke="#64748b" />
+            <Tooltip
+              contentStyle={{ background: '#1e293b', border: '1px solid #334155' }}
+              formatter={(v) => [`${v}%`, 'Fill %']}
+            />
+            <Bar dataKey="fill_pct" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+
+        
+        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
+            Daily Cost Saved (Cr)
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={weekly.daily_performance}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="day" stroke="#64748b" />
+              <YAxis stroke="#64748b" />
+              <Tooltip
+                contentStyle={{ background: '#1e293b', border: '1px solid #334155' }}
+                formatter={(v) => [`₹${v} Cr`, 'Saved']}
+              />
+              <Bar dataKey="cost_saved" fill="#10b981" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
+            Daily Orders Completed
+          </div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={weekly.daily_performance}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="day" stroke="#64748b" />
+              <YAxis stroke="#64748b" />
+              <Tooltip
+                contentStyle={{ background: '#1e293b', border: '1px solid #334155' }}
+                formatter={(v) => [v, 'Orders']}
+              />
+              <Bar dataKey="orders" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+
+        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
+            Top Destinations This Week
+          </div>
+          {destData.length > 0 ? (
+            destData.map((item, i) => (
+              <div key={i} style={{
+                display:        'flex',
+                justifyContent: 'space-between',
+                alignItems:     'center',
+                padding:        '8px 12px',
+                background:     '#0f172a',
+                borderRadius:   8,
+                marginBottom:   8,
+                borderLeft:     `3px solid ${COLORS[i % COLORS.length]}`
+              }}>
+                <span style={{ color: '#94a3b8', fontSize: 13 }}>{item.name}</span>
+                <span style={{ color: COLORS[i % COLORS.length], fontWeight: 700 }}>
+                  {item.value} rakes
+                </span>
+              </div>
+            ))
+          ) : (
+            <div style={{ color: '#64748b', fontSize: 13 }}>No dispatches yet this week</div>
+          )}
+        </div>
+
+       
+        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
+            Order Priority Breakdown
+          </div>
+          {Object.keys(weekly.priority_breakdown).map((priority, i) => {
+            const colors = { Critical: '#ef4444', High: '#f59e0b', Medium: '#3b82f6', Low: '#10b981' };
+            const color  = colors[priority] || '#94a3b8';
+            const total  = Object.values(weekly.priority_breakdown).reduce((a, b) => a + b, 0);
+            const pct    = Math.round((weekly.priority_breakdown[priority] / total) * 100);
+            return (
+              <div key={i} style={{ marginBottom: 12 }}>
+                <div style={{
+                  display:        'flex',
+                  justifyContent: 'space-between',
+                  marginBottom:   4
+                }}>
+                  <span style={{ fontSize: 12, color: '#94a3b8' }}>{priority}</span>
+                  <span style={{ fontSize: 12, color, fontWeight: 700 }}>
+                    {weekly.priority_breakdown[priority]} ({pct}%)
+                  </span>
+                </div>
+                <div style={{ background: '#0f172a', borderRadius: 4, height: 6 }}>
+                  <div style={{
+                    background:   color,
+                    borderRadius: 4,
+                    height:       6,
+                    width:        `${pct}%`
+                  }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [page, setPage] = useState('dashboard');
   const [summary, setSummary] = useState(null);
@@ -874,11 +1046,12 @@ export default function App() {
   const [alerts, setAlerts] = useState([]);
   const [savings, setSavings] = useState(null);
   const [reorder, setReorder] = useState(null);
+  const [weekly, setWeekly] = useState(null);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [s, p, o, f, a, sv, rr] = await Promise.all([
+      const [s, p, o, f, a, sv, rr, wk] = await Promise.all([
         axios.get(`${API}/summary`),
         axios.get(`${API}/rake-plan`),
         axios.get(`${API}/orders`),
@@ -886,6 +1059,7 @@ export default function App() {
         axios.get(`${API}/alerts`),
         axios.get(`${API}/cost-savings`),
         axios.get(`${API}/reorder-alerts`),
+        axios.get(`${API}/weekly-performance`),
       ]);
       setSummary(s.data.summary);
       setPlan(p.data);
@@ -894,6 +1068,7 @@ export default function App() {
       setAlerts(a.data.alerts || []);
       setSavings(sv.data);
       setReorder(rr.data);
+      setWeekly(wk.data);
     } catch (e) {
       console.error('API error:', e);
     }
@@ -909,6 +1084,7 @@ export default function App() {
     { id: 'forecast', label: 'Forecast', icon: BarChart },
     { id: 'whatif', label: 'What-If', icon: AlertTriangle },
     { id: 'reorder', label: 'Reorder', icon: AlertTriangle },
+    { id: 'weekly', label: 'Weekly', icon: TrendingUp },
   ];
 
   return (
@@ -1020,6 +1196,7 @@ export default function App() {
         {page === 'forecast' && <Forecast forecast={forecast} />}
         {page === 'whatif' && <WhatIf />}
         {page === 'reorder' && <ReorderAlerts reorder={reorder} />}
+        {page === 'weekly' && <WeeklyPerformance weekly={weekly} />}
       </div>
     </div>
   );
