@@ -166,12 +166,17 @@ def get_forecast():
 
        
         result = {}
+        forecast_df = forecast_df.loc[:, ~forecast_df.columns.str.contains('^Unnamed')]
         for col in forecast_df.columns:
-            result[col] = {
-                "daily":  [round(v, 2) for v in forecast_df[col].tolist()],
-                "total":  round(float(forecast_df[col].sum()), 2),
-                "avg":    round(float(forecast_df[col].mean()), 2)
-            }
+            try:
+                values = pd.to_numeric(forecast_df[col], errors='coerce').fillna(0)
+                result[col] = {
+                    "daily":  [round(float(v), 2) for v in values.tolist()],
+                    "total":  round(float(values.sum()), 2),
+                    "avg":    round(float(values.mean()), 2)
+                }
+            except Exception:
+                continue
 
         return {
             "status":   "success",
