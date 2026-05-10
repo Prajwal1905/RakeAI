@@ -81,4 +81,4 @@ API Docs  → `http://127.0.0.1:8000/docs`
 
 ## Note on Data
 
-Real SAIL data is proprietary. Synthetic data mirrors real operational parameters. In production, only the data ingestion layer needs replacing with SAP API connectors — all ML models and optimization logic remain unchanged.
+Real SAIL data is proprietary. Synthetic data mirrors real operational parameters. In production, only the data ingestion layer needs replacing with SAP API connectors all ML models and optimization logic remain unchanged.
