@@ -2,501 +2,413 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
+  Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
 import {
   Train, Package, AlertTriangle,
-  TrendingUp, RefreshCw, CheckCircle,
-  Clock, DollarSign
+  TrendingUp, RefreshCw, CheckCircle, DollarSign
 } from 'lucide-react';
 
 const API = 'http://127.0.0.1:8000';
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
+const C = {
+  bg: '#0a0a0a',
+  surface: '#111111',
+  elevated: '#1a1a1a',
+  border: '#222222',
+  borderHi: '#2e2e2e',
+  accent: '#c8a96e',
+  accentDim: '#c8a96e33',
+  text: '#e8e8e8',
+  textSub: '#888888',
+  textDim: '#444444',
+  danger: '#e05c5c',
+  warn: '#d4915a',
+  success: '#5ca87a',
+  info: '#6a9fd4',
+};
+
+const PRODUCT_COLORS = ['#c8a96e', '#d4915a', '#6a9fd4', '#5ca87a', '#9b7fd4', '#d4c26a', '#7fd4c8'];
+
+const styles = {
+  label: { fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.textSub, fontWeight: 600 },
+  mono: { fontFamily: "'JetBrains Mono', 'Courier New', monospace" },
+};
 
 
-function StatCard({ icon: Icon, label, value, sub, color }) {
+const fontLink = document.createElement('link');
+fontLink.rel = 'stylesheet';
+fontLink.href = 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap';
+document.head.appendChild(fontLink);
+
+const globalStyle = document.createElement('style');
+globalStyle.textContent = `
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:${C.bg}; color:${C.text}; font-family:'DM Sans',sans-serif; font-size:14px; }
+  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar-track { background:${C.surface}; }
+  ::-webkit-scrollbar-thumb { background:${C.borderHi}; border-radius:2px; }
+  input, select { outline:none; font-family:'DM Sans',sans-serif; }
+  button { font-family:'DM Sans',sans-serif; }
+`;
+document.head.appendChild(globalStyle);
+
+
+
+function Tag({ children, color = C.accent }) {
   return (
-    <div style={{
-      background: '#1e293b',
-      borderRadius: 12,
-      padding: '20px 24px',
-      borderLeft: `4px solid ${color}`,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 16
-    }}>
-      <div style={{
-        background: color + '22',
-        borderRadius: 10,
-        padding: 12
-      }}>
-        <Icon size={24} color={color} />
-      </div>
-      <div>
-        <div style={{ fontSize: 28, fontWeight: 700, color }}>{value}</div>
-        <div style={{ fontSize: 13, color: '#94a3b8' }}>{label}</div>
-        {sub && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{sub}</div>}
-      </div>
-    </div>
+    <span style={{
+      fontSize: 9, letterSpacing: '0.14em', fontWeight: 700,
+      textTransform: 'uppercase', color,
+      border: `1px solid ${color}55`,
+      background: `${color}11`,
+      padding: '2px 8px', borderRadius: 2
+    }}>{children}</span>
   );
 }
 
 function Badge({ text }) {
-  const colors = {
-    Critical: '#ef4444',
-    High: '#f59e0b',
-    Medium: '#3b82f6',
-    Low: '#10b981',
-    Planned: '#10b981'
-  };
-  const color = colors[text] || '#94a3b8';
-  return (
-    <span style={{
-      background: color + '22',
-      color,
-      padding: '2px 10px',
-      borderRadius: 20,
-      fontSize: 11,
-      fontWeight: 600,
-      border: `1px solid ${color}44`
-    }}>
-      {text}
-    </span>
-  );
+  const map = { Critical: C.danger, High: C.warn, Medium: C.info, Low: C.success, Planned: C.success };
+  const color = map[text] || C.textSub;
+  return <Tag color={color}>{text}</Tag>;
 }
 
-function SectionTitle({ title, sub }) {
+function Divider() {
+  return <div style={{ height: 1, background: C.border, margin: '20px 0' }} />;
+}
+
+function StatCard({ icon: Icon, label, value, color = C.accent }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>{title}</h2>
-      {sub && <p style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{sub}</p>}
+    <div style={{
+      background: C.surface, border: `1px solid ${C.border}`,
+      borderRadius: 4, padding: '20px 22px',
+      display: 'flex', flexDirection: 'column', gap: 10
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={styles.label}>{label}</span>
+        <Icon size={14} color={C.textDim} />
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 300, color, ...styles.mono, letterSpacing: '-0.02em' }}>
+        {value}
+      </div>
     </div>
   );
 }
 
+function SectionHeader({ title, sub }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+        <div style={{ width: 2, height: 14, background: C.accent, borderRadius: 1 }} />
+        <span style={{ fontSize: 13, fontWeight: 600, color: C.text, letterSpacing: '0.01em' }}>{title}</span>
+      </div>
+      {sub && <p style={{ fontSize: 11, color: C.textSub, paddingLeft: 12 }}>{sub}</p>}
+    </div>
+  );
+}
+
+function Table({ headers, rows }) {
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+            {headers.map(h => (
+              <th key={h} style={{
+                padding: '10px 14px', textAlign: 'left',
+                ...styles.label, whiteSpace: 'nowrap'
+              }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{rows}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function Panel({ children, style = {} }) {
+  return (
+    <div style={{
+      background: C.surface, border: `1px solid ${C.border}`,
+      borderRadius: 4, padding: 20, ...style
+    }}>{children}</div>
+  );
+}
 
 
-function Dashboard({ summary }) {
-  if (!summary) return <div style={{ color: '#64748b' }}>Loading summary...</div>;
+function Dashboard({ summary, savings, alerts }) {
+  if (!summary) return <div style={{ color: C.textDim }}>Loading…</div>;
 
   const fillData = [
+    { name: 'Manual', value: 70 },
     { name: 'Target', value: 85 },
-    { name: 'Achieved', value: summary.avg_fill }
+    { name: 'Achieved', value: summary.avg_fill },
   ];
 
   return (
-    <div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 16,
-        marginBottom: 28
-      }}>
-        <StatCard icon={Package} label="Pending Orders" value={summary.pending_orders} color="#3b82f6" />
-        <StatCard icon={AlertTriangle} label="Critical Orders" value={summary.critical_orders} color="#ef4444" />
-        <StatCard icon={Train} label="Rakes Planned" value={summary.rakes_planned} color="#10b981" />
-        <StatCard icon={TrendingUp} label="Avg Fill %" value={`${summary.avg_fill}%`} color="#f59e0b" />
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-
-        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
-          <SectionTitle title="Today's Cost Summary" />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { label: 'Total Logistics Cost', value: `₹${(summary.total_cost / 10000000).toFixed(2)} Cr`, color: '#ef4444' },
-              { label: 'Orders Assigned', value: summary.orders_assigned, color: '#10b981' },
-              { label: 'Available Rakes', value: summary.available_rakes, color: '#3b82f6' },
-              { label: 'Total Inventory', value: `${summary.total_inventory.toLocaleString()} T`, color: '#f59e0b' },
-            ].map((item, i) => (
+      {/* Alerts */}
+      {alerts && alerts.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {alerts.map((a, i) => {
+            const c = a.type === 'danger' ? C.danger : a.type === 'warning' ? C.warn : C.textDim;
+            return (
               <div key={i} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '10px 14px',
-                background: '#0f172a',
-                borderRadius: 8,
-                borderLeft: `3px solid ${item.color}`
+                background: `${c}08`, border: `1px solid ${c}33`,
+                borderLeft: `2px solid ${c}`, borderRadius: 4,
+                padding: '10px 16px', display: 'flex',
+                justifyContent: 'space-between', alignItems: 'center'
               }}>
-                <span style={{ color: '#94a3b8', fontSize: 13 }}>{item.label}</span>
-                <span style={{ color: item.color, fontWeight: 700 }}>{item.value}</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: c }}>{a.title}</div>
+                  <div style={{ fontSize: 11, color: C.textSub, marginTop: 2 }}>{a.detail}</div>
+                </div>
+                <Tag color={c}>{a.type}</Tag>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      )}
 
 
-        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
-          <SectionTitle title="Fill % vs Target" sub="Target: 85% | Achieved today" />
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={fillData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="name" stroke="#64748b" />
-              <YAxis domain={[0, 100]} stroke="#64748b" />
-              <Tooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155' }}
-              />
-              <Bar dataKey="value" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+        <StatCard icon={Package} label="Pending Orders" value={summary.pending_orders} color={C.info} />
+        <StatCard icon={AlertTriangle} label="Critical" value={summary.critical_orders} color={C.danger} />
+        <StatCard icon={Train} label="Rakes Planned" value={summary.rakes_planned} color={C.accent} />
+        <StatCard icon={TrendingUp} label="Avg Fill" value={`${summary.avg_fill}%`} color={C.success} />
       </div>
 
-      <div style={{
-        marginTop: 16,
-        padding: '10px 16px',
-        background: '#1e293b',
-        borderRadius: 8,
-        fontSize: 12,
-        color: '#64748b'
-      }}>
-        Last updated: {summary.last_updated}
+
+      {savings && savings.status === 'success' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Panel>
+            <SectionHeader title="Cost Savings — Today" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { label: 'Manual Planning (70% fill)', value: `₹${savings.manual_crore} Cr`, color: C.danger },
+                { label: 'RakeAI Optimizer', value: `₹${savings.actual_crore} Cr`, color: C.success },
+                { label: 'Saved Today', value: `₹${savings.savings_crore} Cr`, color: C.accent },
+                { label: 'Annual Projection', value: `₹${(savings.savings_crore * 365).toFixed(0)} Cr`, color: C.accent },
+              ].map((row, i) => (
+                <div key={i} style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  padding: '9px 12px', borderRadius: 3,
+                  background: C.elevated, borderLeft: `2px solid ${row.color}33`
+                }}>
+                  <span style={{ fontSize: 11, color: C.textSub }}>{row.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: row.color, ...styles.mono }}>{row.value}</span>
+                </div>
+              ))}
+            </div>
+          </Panel>
+
+          <Panel>
+            <SectionHeader title="Fill Rate Comparison" sub="Manual vs Target vs Achieved" />
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={fillData} barSize={32}>
+                <CartesianGrid strokeDasharray="2 4" stroke={C.border} vertical={false} />
+                <XAxis dataKey="name" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textSub }} axisLine={false} tickLine={false} />
+                <YAxis domain={[0, 100]} stroke={C.textDim} tick={{ fontSize: 10, fill: C.textSub }} axisLine={false} tickLine={false} />
+                <Tooltip
+                  contentStyle={{ background: C.elevated, border: `1px solid ${C.border}`, borderRadius: 3, fontSize: 11 }}
+                  formatter={(v) => [`${v}%`]}
+                />
+                <Bar dataKey="value" radius={[2, 2, 0, 0]}>
+                  <Cell fill={C.danger} />
+                  <Cell fill={C.textDim} />
+                  <Cell fill={C.success} />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </Panel>
+        </div>
+      )}
+
+
+      <Panel>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 0 }}>
+          {[
+            { label: 'Orders Assigned', value: summary.orders_assigned },
+            { label: 'Available Rakes', value: summary.available_rakes },
+            { label: 'Total Inventory', value: `${summary.total_inventory.toLocaleString()} T` },
+            { label: 'Total Cost', value: `₹${(summary.total_cost / 10000000).toFixed(2)} Cr` },
+          ].map((item, i) => (
+            <div key={i} style={{
+              padding: '14px 20px',
+              borderRight: i < 3 ? `1px solid ${C.border}` : 'none'
+            }}>
+              <div style={styles.label}>{item.label}</div>
+              <div style={{ fontSize: 18, fontWeight: 500, color: C.text, marginTop: 6, ...styles.mono }}>
+                {item.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Panel>
+
+      <div style={{ fontSize: 10, color: C.textDim, textAlign: 'right', ...styles.mono }}>
+        Last updated {summary.last_updated}
       </div>
     </div>
   );
 }
 
 function RakePlan({ plan, onRefresh }) {
-  if (!plan) return <div style={{ color: '#64748b' }}>Loading rake plan...</div>;
+  if (!plan) return <div style={{ color: C.textDim }}>Loading…</div>;
 
   const handleDispatch = async (rakeId, orderIds) => {
-    if (!window.confirm(`Dispatch ${rakeId}? This will mark all orders as completed.`))
-      return;
+    if (!window.confirm(`Dispatch ${rakeId}?`)) return;
     try {
-      await axios.post(
-        `${API}/dispatch-rake/${rakeId}?order_ids=${encodeURIComponent(orderIds)}`
-      );
-      alert(` ${rakeId} dispatched! Orders removed from pending list.`);
+      await axios.post(`${API}/dispatch-rake/${rakeId}?order_ids=${encodeURIComponent(orderIds)}`);
       onRefresh();
-    } catch (e) {
-      alert('Error dispatching rake');
-    }
+    } catch { alert('Error dispatching'); }
   };
 
   return (
     <div>
-      <SectionTitle
-        title="Today's Rake Formation Plan"
-        sub={`${plan.total_rakes} rakes planned | ${plan.total_orders} orders assigned | Avg fill: ${plan.avg_fill}%`}
-      />
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: '#1e293b' }}>
-              {['Rake ID', 'Wagon', 'Destination', 'Products', 'Orders', 'Quantity', 'Fill %', 'Delay Risk', 'Cost', 'Action'].map(h => (
-                <th key={h} style={{
-                  padding: '12px 14px',
-                  textAlign: 'left',
-                  color: '#64748b',
-                  fontWeight: 600,
-                  borderBottom: '1px solid #334155'
-                }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {plan.plan.map((row, i) => (
-              <tr key={i} style={{
-                borderBottom: '1px solid #1e293b',
-                background: i % 2 === 0 ? '#0f172a' : '#111827'
-              }}>
-                <td style={{ padding: '11px 14px', color: '#3b82f6', fontWeight: 600 }}>{row.rake_id}</td>
-                <td style={{ padding: '11px 14px', color: '#94a3b8' }}>{row.wagon_type}</td>
-                <td style={{ padding: '11px 14px', color: '#f1f5f9' }}>{row.primary_destination}</td>
-                <td style={{ padding: '11px 14px', color: '#94a3b8', maxWidth: 160 }}>{row.products}</td>
-                <td style={{ padding: '11px 14px', color: '#10b981', textAlign: 'center' }}>{row.orders_clubbed}</td>
-                <td style={{ padding: '11px 14px', color: '#f1f5f9' }}>{row.quantity_loaded.toLocaleString()} T</td>
-                <td style={{ padding: '11px 14px' }}>
-                  <span style={{
-                    color: row.fill_percentage >= 90 ? '#10b981' : row.fill_percentage >= 75 ? '#f59e0b' : '#ef4444',
-                    fontWeight: 700
-                  }}>
-                    {row.fill_percentage}%
-                  </span>
-                </td>
-                <td style={{ padding: '11px 14px' }}>
-                  <span style={{
-                    color: row.avg_delay_risk > 0.5 ? '#ef4444' : row.avg_delay_risk > 0.3 ? '#f59e0b' : '#10b981',
-                    fontWeight: 600
-                  }}>
-                    {(row.avg_delay_risk * 100).toFixed(0)}%
-                  </span>
-                </td>
-                <td style={{ padding: '11px 14px', color: '#f59e0b' }}>
-                  ₹{(row.total_cost / 100000).toFixed(1)}L
-                </td>
-                <td style={{ padding: '11px 14px' }}>
-                  <button
-                    onClick={() => handleDispatch(row.rake_id, row.order_ids)}
-                    style={{
-                      background: '#10b98122',
-                      color: '#10b981',
-                      border: '1px solid #10b98144',
-                      borderRadius: 6,
-                      padding: '5px 14px',
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      fontWeight: 600
-                    }}
-                  >
-                    Dispatch
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ display: 'flex', gap: 20, marginBottom: 16, fontSize: 11, color: C.textSub }}>
+        <span style={styles.mono}>{plan.total_rakes} rakes</span>
+        <span style={styles.mono}>{plan.total_orders} orders</span>
+        <span style={{ color: C.success, ...styles.mono }}>{plan.avg_fill}% avg fill</span>
       </div>
+      <Panel style={{ padding: 0 }}>
+        <Table
+          headers={['Rake', 'Wagon', 'Destination', 'Products', 'Orders', 'Quantity', 'Fill', 'Risk', 'Cost', '']}
+          rows={plan.plan.map((row, i) => (
+            <tr key={i} style={{
+              borderBottom: `1px solid ${C.border}`,
+              background: i % 2 === 0 ? 'transparent' : `${C.elevated}55`
+            }}>
+              <td style={{ padding: '11px 14px', color: C.accent, fontWeight: 600, ...styles.mono, fontSize: 12 }}>{row.rake_id}</td>
+              <td style={{ padding: '11px 14px', color: C.textSub }}>{row.wagon_type}</td>
+              <td style={{ padding: '11px 14px', color: C.text, fontWeight: 500 }}>{row.primary_destination}</td>
+              <td style={{ padding: '11px 14px', color: C.textSub, maxWidth: 140, fontSize: 11 }}>{row.products}</td>
+              <td style={{ padding: '11px 14px', color: C.text, textAlign: 'center', ...styles.mono }}>{row.orders_clubbed}</td>
+              <td style={{ padding: '11px 14px', color: C.text, ...styles.mono }}>{row.quantity_loaded.toLocaleString()} T</td>
+              <td style={{ padding: '11px 14px' }}>
+                <span style={{
+                  color: row.fill_percentage >= 90 ? C.success : row.fill_percentage >= 75 ? C.warn : C.danger,
+                  fontWeight: 600, ...styles.mono, fontSize: 12
+                }}>{row.fill_percentage}%</span>
+              </td>
+              <td style={{ padding: '11px 14px' }}>
+                <span style={{
+                  color: row.avg_delay_risk > 0.5 ? C.danger : row.avg_delay_risk > 0.3 ? C.warn : C.success,
+                  ...styles.mono, fontSize: 12
+                }}>{(row.avg_delay_risk * 100).toFixed(0)}%</span>
+              </td>
+              <td style={{ padding: '11px 14px', color: C.textSub, ...styles.mono, fontSize: 11 }}>
+                ₹{(row.total_cost / 100000).toFixed(1)}L
+              </td>
+              <td style={{ padding: '11px 14px' }}>
+                <button onClick={() => handleDispatch(row.rake_id, row.order_ids)} style={{
+                  background: 'transparent', color: C.success,
+                  border: `1px solid ${C.success}44`, borderRadius: 2,
+                  padding: '4px 12px', cursor: 'pointer', fontSize: 11,
+                  letterSpacing: '0.05em'
+                }}>Dispatch</button>
+              </td>
+            </tr>
+          ))}
+        />
+      </Panel>
     </div>
   );
 }
 
 function Orders({ orders }) {
   const [filter, setFilter] = useState('All');
-  if (!orders) return <div style={{ color: '#64748b' }}>Loading orders...</div>;
+  if (!orders) return <div style={{ color: C.textDim }}>Loading…</div>;
 
   const priorities = ['All', 'Critical', 'High', 'Medium', 'Low'];
-  const filtered = filter === 'All'
-    ? orders.orders
-    : orders.orders.filter(o => o.priority === filter);
+  const filtered = filter === 'All' ? orders.orders : orders.orders.filter(o => o.priority === filter);
 
   return (
     <div>
-      <SectionTitle
-        title="Pending Customer Orders"
-        sub={`${orders.total_orders} total | ${orders.critical} critical | ${orders.high} high priority`}
-      />
-
-
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         {priorities.map(p => (
           <button key={p} onClick={() => setFilter(p)} style={{
-            padding: '6px 16px',
-            borderRadius: 20,
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 600,
-            background: filter === p ? '#3b82f6' : '#1e293b',
-            color: filter === p ? '#fff' : '#94a3b8'
+            padding: '5px 14px', borderRadius: 2, border: `1px solid ${filter === p ? C.accent : C.border}`,
+            cursor: 'pointer', fontSize: 11, letterSpacing: '0.06em',
+            background: filter === p ? C.accentDim : 'transparent',
+            color: filter === p ? C.accent : C.textSub
           }}>{p}</button>
         ))}
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: C.textDim, alignSelf: 'center', ...styles.mono }}>
+          {filtered.length} orders
+        </span>
       </div>
-
-      <div style={{ overflowX: 'auto', maxHeight: 500, overflowY: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead style={{ position: 'sticky', top: 0 }}>
-            <tr style={{ background: '#1e293b' }}>
-              {['Order ID', 'Product', 'Destination', 'Quantity', 'Priority', 'Deadline', 'Type', 'Delay Risk'].map(h => (
-                <th key={h} style={{
-                  padding: '12px 14px',
-                  textAlign: 'left',
-                  color: '#64748b',
-                  fontWeight: 600,
-                  borderBottom: '1px solid #334155'
-                }}>{h}</th>
-              ))}
+      <Panel style={{ padding: 0, maxHeight: 520, overflowY: 'auto' }}>
+        <Table
+          headers={['Order ID', 'Product', 'Destination', 'Qty', 'Priority', 'Deadline', 'Type', 'Delay Risk']}
+          rows={filtered.slice(0, 60).map((row, i) => (
+            <tr key={i} style={{
+              borderBottom: `1px solid ${C.border}`,
+              background: i % 2 === 0 ? 'transparent' : `${C.elevated}55`
+            }}>
+              <td style={{ padding: '10px 14px', color: C.accent, ...styles.mono, fontSize: 11 }}>{row.order_id}</td>
+              <td style={{ padding: '10px 14px', color: C.text, fontSize: 12 }}>{row.product}</td>
+              <td style={{ padding: '10px 14px', color: C.textSub, fontSize: 12 }}>{row.destination_city}</td>
+              <td style={{ padding: '10px 14px', color: C.text, ...styles.mono, fontSize: 11 }}>{row.quantity_tonnes} T</td>
+              <td style={{ padding: '10px 14px' }}><Badge text={row.priority} /></td>
+              <td style={{ padding: '10px 14px', color: C.textSub, ...styles.mono, fontSize: 11 }}>{row.deadline}</td>
+              <td style={{ padding: '10px 14px', color: C.textSub, fontSize: 11 }}>{row.order_type}</td>
+              <td style={{ padding: '10px 14px' }}>
+                <span style={{
+                  color: row.delay_risk > 50 ? C.danger : row.delay_risk > 30 ? C.warn : C.success,
+                  fontWeight: 600, ...styles.mono, fontSize: 12
+                }}>{row.delay_risk}%</span>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {filtered.slice(0, 50).map((row, i) => (
-              <tr key={i} style={{
-                borderBottom: '1px solid #1e293b',
-                background: i % 2 === 0 ? '#0f172a' : '#111827'
-              }}>
-                <td style={{ padding: '10px 14px', color: '#3b82f6', fontWeight: 600 }}>{row.order_id}</td>
-                <td style={{ padding: '10px 14px', color: '#f1f5f9' }}>{row.product}</td>
-                <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.destination_city}</td>
-                <td style={{ padding: '10px 14px', color: '#f1f5f9' }}>{row.quantity_tonnes} T</td>
-                <td style={{ padding: '10px 14px' }}><Badge text={row.priority} /></td>
-                <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.deadline}</td>
-                <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.order_type}</td>
-                <td style={{ padding: '10px 14px' }}>
-                  <span style={{
-                    color: row.delay_risk > 50 ? '#ef4444' : row.delay_risk > 30 ? '#f59e0b' : '#10b981',
-                    fontWeight: 600
-                  }}>
-                    {row.delay_risk}%
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        />
+      </Panel>
     </div>
   );
 }
 
 function Forecast({ forecast }) {
-  if (!forecast) return <div style={{ color: '#64748b' }}>Loading forecast...</div>;
+  if (!forecast || !forecast.forecast) return <div style={{ color: C.textDim }}>Loading…</div>;
 
-  const chartData = forecast && forecast.forecast ? Object.keys(forecast.forecast).map(product => ({
+  const chartData = Object.keys(forecast.forecast).map((product, i) => ({
     product,
-    total: Math.round(forecast.forecast[product].total),
-    daily: Math.round(forecast.forecast[product].avg)
-  })) : [];
+    total: Math.round(forecast.forecast[product].total || 0),
+    daily: Math.round(forecast.forecast[product].avg || 0),
+    color: PRODUCT_COLORS[i % PRODUCT_COLORS.length]
+  }));
 
   return (
-    <div>
-      <SectionTitle
-        title="7-Day Demand Forecast"
-        sub="ARIMA model predictions — production planning guide"
-      />
-
-      <div style={{ background: '#1e293b', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-        <h3 style={{ color: '#94a3b8', fontSize: 14, marginBottom: 16 }}>
-          Total Demand by Product (Next 7 Days)
-        </h3>
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart data={chartData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis type="number" stroke="#64748b" />
-            <YAxis dataKey="product" type="category" stroke="#64748b" width={100} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Panel>
+        <SectionHeader title="7-Day Demand Forecast" sub="ARIMA time-series model — next 7 days by product" />
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={chartData} layout="vertical" barSize={18}>
+            <CartesianGrid strokeDasharray="2 4" stroke={C.border} horizontal={false} />
+            <XAxis type="number" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textSub }} axisLine={false} tickLine={false} />
+            <YAxis dataKey="product" type="category" stroke={C.textDim} tick={{ fontSize: 11, fill: C.textSub }} axisLine={false} tickLine={false} width={90} />
             <Tooltip
-              contentStyle={{ background: '#1e293b', border: '1px solid #334155' }}
-              formatter={(v) => [`${v.toLocaleString()} T`, 'Total']}
+              contentStyle={{ background: C.elevated, border: `1px solid ${C.border}`, borderRadius: 3, fontSize: 11 }}
+              formatter={(v) => [`${v.toLocaleString()} T`]}
             />
-            <Bar dataKey="total" radius={[0, 6, 6, 0]}>
-              {chartData.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
-              ))}
+            <Bar dataKey="total" radius={[0, 2, 2, 0]}>
+              {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </Panel>
 
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 12
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
         {chartData.map((item, i) => (
-          <div key={i} style={{
-            background: '#1e293b',
-            borderRadius: 10,
-            padding: '14px 16px',
-            borderTop: `3px solid ${COLORS[i % COLORS.length]}`
-          }}>
-            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>{item.product}</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: COLORS[i % COLORS.length] }}>
+          <Panel key={i} style={{ borderTop: `2px solid ${item.color}`, padding: '14px 16px' }}>
+            <div style={{ fontSize: 11, color: C.textSub, marginBottom: 6 }}>{item.product}</div>
+            <div style={{ fontSize: 20, fontWeight: 500, color: item.color, ...styles.mono }}>
               {item.total.toLocaleString()}
             </div>
-            <div style={{ fontSize: 11, color: '#475569' }}>tonnes / 7 days</div>
-            <div style={{ fontSize: 11, color: '#475569' }}>~{item.daily.toLocaleString()} T/day</div>
-          </div>
+            <div style={{ fontSize: 10, color: C.textDim, marginTop: 4 }}>~{item.daily.toLocaleString()} T/day</div>
+          </Panel>
         ))}
-      </div>
-    </div>
-  );
-}
-function SavingsCard({ savings }) {
-  if (!savings || savings.status !== 'success') return null;
-
-  return (
-    <div style={{
-      background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-      border: '1px solid #10b98144',
-      borderRadius: 12,
-      padding: 20,
-      marginBottom: 20
-    }}>
-      <div style={{
-        fontSize: 13,
-        color: '#10b981',
-        fontWeight: 700,
-        marginBottom: 16,
-        letterSpacing: 1
-      }}>
-        COST SAVINGS CALCULATOR — TODAY
-      </div>
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr 1fr',
-        gap: 12,
-        marginBottom: 16
-      }}>
-        {/* Manual */}
-        <div style={{
-          background: '#ef444415',
-          border: '1px solid #ef444433',
-          borderRadius: 10,
-          padding: '14px 16px'
-        }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
-            Manual Planning
-          </div>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
-            Industry avg fill: {savings.manual_fill}%
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#ef4444' }}>
-            ₹{savings.manual_crore} Cr
-          </div>
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-            estimated cost
-          </div>
-        </div>
-
-        {/* RakeAI */}
-        <div style={{
-          background: '#10b98115',
-          border: '1px solid #10b98133',
-          borderRadius: 10,
-          padding: '14px 16px'
-        }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
-            RakeAI Optimizer
-          </div>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
-            Achieved fill: {savings.actual_fill}%
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#10b981' }}>
-            ₹{savings.actual_crore} Cr
-          </div>
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-            actual cost
-          </div>
-        </div>
-
-        {/* Savings */}
-        <div style={{
-          background: '#3b82f615',
-          border: '1px solid #3b82f633',
-          borderRadius: 10,
-          padding: '14px 16px'
-        }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>
-            Today's Saving
-          </div>
-          <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8 }}>
-            Efficiency gain: +{savings.efficiency_gain}%
-          </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#3b82f6' }}>
-            ₹{savings.savings_crore} Cr
-          </div>
-          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-            saved today
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom bar */}
-      <div style={{
-        background: '#10b98122',
-        borderRadius: 8,
-        padding: '10px 16px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <span style={{ color: '#94a3b8', fontSize: 12 }}>
-          Annual projection at current efficiency
-        </span>
-        <span style={{ color: '#10b981', fontWeight: 800, fontSize: 16 }}>
-          ₹{(savings.savings_crore * 365).toFixed(0)} Cr / year saved
-        </span>
       </div>
     </div>
   );
@@ -504,534 +416,249 @@ function SavingsCard({ savings }) {
 
 function WhatIf() {
   const [rakeId, setRakeId] = useState('RK105');
-  const [delayDays, setDelayDays] = useState(1);
+  const [delayDays, setDelayDays] = useState(2);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const runAnalysis = async () => {
+  const run = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(
-        `${API}/whatif?rake_id=${rakeId}&delay_days=${delayDays}`
-      );
+      const res = await axios.get(`${API}/whatif?rake_id=${rakeId}&delay_days=${delayDays}`);
       setResult(res.data);
-    } catch (e) {
-      alert('Error running analysis');
-    }
+    } catch { alert('Error'); }
     setLoading(false);
   };
 
   return (
-    <div>
-      <SectionTitle
-        title="What-If Simulator"
-        sub="Analyze financial impact of rake delays before they happen"
-      />
-
-
-      <div style={{
-        background: '#1e293b',
-        borderRadius: 12,
-        padding: 24,
-        marginBottom: 20
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr auto',
-          gap: 16,
-          alignItems: 'end'
-        }}>
-          <div>
-            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>
-              Rake ID
-            </label>
-            <input
-              value={rakeId}
-              onChange={e => setRakeId(e.target.value)}
-              placeholder="e.g. RK105"
-              style={{
-                width: '100%',
-                background: '#0f172a',
-                border: '1px solid #334155',
-                borderRadius: 8,
-                padding: '10px 14px',
-                color: '#f1f5f9',
-                fontSize: 14
-              }}
-            />
-          </div>
-          <div>
-            <label style={{ fontSize: 12, color: '#64748b', display: 'block', marginBottom: 6 }}>
-              Delay Days
-            </label>
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={delayDays}
-              onChange={e => setDelayDays(parseInt(e.target.value))}
-              style={{
-                width: '100%',
-                background: '#0f172a',
-                border: '1px solid #334155',
-                borderRadius: 8,
-                padding: '10px 14px',
-                color: '#f1f5f9',
-                fontSize: 14
-              }}
-            />
-          </div>
-          <button
-            onClick={runAnalysis}
-            disabled={loading}
-            style={{
-              background: '#3b82f6',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 24px',
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: 14
-            }}
-          >
-            {loading ? 'Analyzing...' : 'Run Analysis'}
-          </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Panel>
+        <SectionHeader title="What-If Simulator" sub="Model financial impact of rake delays before they happen" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 12, alignItems: 'end' }}>
+          {[
+            { label: 'Rake ID', value: rakeId, set: setRakeId, type: 'text', placeholder: 'e.g. RK105' },
+            { label: 'Delay Days', value: delayDays, set: setDelayDays, type: 'number', placeholder: '1-10' },
+          ].map((field, i) => (
+            <div key={i}>
+              <div style={{ ...styles.label, marginBottom: 6 }}>{field.label}</div>
+              <input
+                type={field.type} value={field.value} placeholder={field.placeholder}
+                onChange={e => field.set(field.type === 'number' ? parseInt(e.target.value) : e.target.value)}
+                style={{
+                  width: '100%', background: C.elevated,
+                  border: `1px solid ${C.border}`, borderRadius: 3,
+                  padding: '9px 12px', color: C.text, fontSize: 13, ...styles.mono
+                }}
+              />
+            </div>
+          ))}
+          <button onClick={run} disabled={loading} style={{
+            background: C.accentDim, color: C.accent,
+            border: `1px solid ${C.accent}55`, borderRadius: 3,
+            padding: '9px 24px', cursor: 'pointer', fontSize: 12,
+            fontWeight: 600, letterSpacing: '0.06em'
+          }}>{loading ? 'Running…' : 'Analyze'}</button>
         </div>
-      </div>
-
+      </Panel>
 
       {result && result.status === 'success' && (
-        <div>
-
+        <>
           <div style={{
-            background: result.total_impact > 500000 ? '#ef444420' : '#f59e0b20',
-            border: `1px solid ${result.total_impact > 500000 ? '#ef4444' : '#f59e0b'}`,
-            borderRadius: 10,
-            padding: '14px 18px',
-            marginBottom: 16,
-            fontSize: 14,
-            fontWeight: 700,
-            color: result.total_impact > 500000 ? '#ef4444' : '#f59e0b'
-          }}>
-            {result.recommendation}
-          </div>
+            background: `${result.total_impact > 500000 ? C.danger : C.warn}0d`,
+            border: `1px solid ${result.total_impact > 500000 ? C.danger : C.warn}44`,
+            borderLeft: `2px solid ${result.total_impact > 500000 ? C.danger : C.warn}`,
+            borderRadius: 4, padding: '12px 16px',
+            fontSize: 13, fontWeight: 500,
+            color: result.total_impact > 500000 ? C.danger : C.warn
+          }}>{result.recommendation}</div>
 
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: 12,
-            marginBottom: 20
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
             {[
-              { label: 'Orders Affected', value: result.orders_affected, color: '#3b82f6' },
-              { label: 'Missed Deadlines', value: result.missed_deadlines, color: '#ef4444' },
-              { label: 'Extra Demurrage', value: `₹${(result.extra_demurrage / 100000).toFixed(1)}L`, color: '#f59e0b' },
-              { label: 'Total Impact', value: `₹${result.total_impact_lakh}L`, color: '#ef4444' },
+              { label: 'Orders Affected', value: result.orders_affected, color: C.info },
+              { label: 'Missed Deadlines', value: result.missed_deadlines, color: C.danger },
+              { label: 'Extra Demurrage', value: `₹${(result.extra_demurrage / 100000).toFixed(1)}L`, color: C.warn },
+              { label: 'Total Impact', value: `₹${result.total_impact_lakh}L`, color: C.danger },
             ].map((item, i) => (
-              <div key={i} style={{
-                background: '#1e293b',
-                borderRadius: 10,
-                padding: '16px',
-                borderTop: `3px solid ${item.color}`
-              }}>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>{item.label}</div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: item.color }}>{item.value}</div>
-              </div>
+              <Panel key={i} style={{ borderTop: `2px solid ${item.color}` }}>
+                <div style={{ ...styles.label, marginBottom: 8 }}>{item.label}</div>
+                <div style={{ fontSize: 22, fontWeight: 500, color: item.color, ...styles.mono }}>{item.value}</div>
+              </Panel>
             ))}
           </div>
 
-
           {result.missed_orders.length > 0 && (
-            <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 14 }}>
-                Orders That Will Miss Deadline
+            <Panel style={{ padding: 0 }}>
+              <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Orders Missing Deadline</span>
               </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: '#0f172a' }}>
-                    {['Order ID', 'Product', 'Priority', 'Deadline', 'Penalty'].map(h => (
-                      <th key={h} style={{
-                        padding: '10px 14px',
-                        textAlign: 'left',
-                        color: '#64748b',
-                        fontWeight: 600,
-                        borderBottom: '1px solid #334155'
-                      }}>{h}</th>
-                    ))}
+              <Table
+                headers={['Order ID', 'Product', 'Priority', 'Deadline', 'Penalty']}
+                rows={result.missed_orders.map((row, i) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: '10px 14px', color: C.accent, ...styles.mono, fontSize: 11 }}>{row.order_id}</td>
+                    <td style={{ padding: '10px 14px', color: C.text, fontSize: 12 }}>{row.product}</td>
+                    <td style={{ padding: '10px 14px' }}><Badge text={row.priority} /></td>
+                    <td style={{ padding: '10px 14px', color: C.textSub, ...styles.mono, fontSize: 11 }}>{row.deadline}</td>
+                    <td style={{ padding: '10px 14px', color: C.danger, fontWeight: 600, ...styles.mono, fontSize: 12 }}>
+                      ₹{row.penalty.toLocaleString()}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {result.missed_orders.map((row, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #0f172a' }}>
-                      <td style={{ padding: '10px 14px', color: '#3b82f6', fontWeight: 600 }}>{row.order_id}</td>
-                      <td style={{ padding: '10px 14px', color: '#f1f5f9' }}>{row.product}</td>
-                      <td style={{ padding: '10px 14px' }}><Badge text={row.priority} /></td>
-                      <td style={{ padding: '10px 14px', color: '#94a3b8' }}>{row.deadline}</td>
-                      <td style={{ padding: '10px 14px', color: '#ef4444', fontWeight: 700 }}>
-                        ₹{row.penalty.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                ))}
+              />
               <div style={{
-                marginTop: 12,
-                padding: '10px 14px',
-                background: '#ef444415',
-                borderRadius: 8,
-                display: 'flex',
-                justifyContent: 'space-between'
+                padding: '12px 18px', borderTop: `1px solid ${C.border}`,
+                display: 'flex', justifyContent: 'space-between'
               }}>
-                <span style={{ color: '#94a3b8', fontSize: 13 }}>Total Penalty Cost</span>
-                <span style={{ color: '#ef4444', fontWeight: 800 }}>
-                  ₹{result.total_penalty.toLocaleString()}
-                </span>
+                <span style={{ fontSize: 11, color: C.textSub }}>Total Penalty</span>
+                <span style={{ color: C.danger, fontWeight: 700, ...styles.mono }}>₹{result.total_penalty.toLocaleString()}</span>
               </div>
-            </div>
+            </Panel>
           )}
-        </div>
-      )}
-
-      {result && result.status === 'error' && (
-        <div style={{
-          background: '#ef444420',
-          border: '1px solid #ef4444',
-          borderRadius: 8,
-          padding: '14px 18px',
-          color: '#ef4444'
-        }}>
-          {result.message}
-        </div>
+        </>
       )}
     </div>
   );
 }
 
-function ReorderAlerts({ reorder }) {
-  if (!reorder) return <div style={{ color: '#64748b' }}>Loading...</div>;
+function Reorder({ reorder }) {
+  if (!reorder) return <div style={{ color: C.textDim }}>Loading…</div>;
 
   const colorMap = {
-    critical: { bg: '#ef444420', border: '#ef4444', text: '#ef4444', label: 'CRITICAL' },
-    warning: { bg: '#f59e0b20', border: '#f59e0b', text: '#f59e0b', label: 'WARNING' },
-    safe: { bg: '#10b98120', border: '#10b981', text: '#10b981', label: 'SAFE' },
+    critical: C.danger,
+    warning: C.warn,
+    safe: C.success,
   };
 
   return (
-    <div>
-      <SectionTitle
-        title="Smart Reorder Alerts"
-        sub="AI predicts stockout days based on demand forecast"
-      />
-
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: 12,
-        marginBottom: 20
-      }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
         {[
-          { label: 'Critical Products', value: reorder.critical, color: '#ef4444' },
-          { label: 'Warning Products', value: reorder.warning, color: '#f59e0b' },
-          { label: 'Safe Products', value: reorder.safe, color: '#10b981' },
+          { label: 'Critical', value: reorder.critical, color: C.danger },
+          { label: 'Warning', value: reorder.warning, color: C.warn },
+          { label: 'Safe', value: reorder.safe, color: C.success },
         ].map((item, i) => (
-          <div key={i} style={{
-            background: '#1e293b',
-            borderRadius: 10,
-            padding: '16px 20px',
-            borderTop: `3px solid ${item.color}`
-          }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: item.color }}>
-              {item.value}
-            </div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>{item.label}</div>
-          </div>
+          <Panel key={i} style={{ borderTop: `2px solid ${item.color}` }}>
+            <div style={{ ...styles.label, marginBottom: 8 }}>{item.label}</div>
+            <div style={{ fontSize: 28, fontWeight: 300, color: item.color, ...styles.mono }}>{item.value}</div>
+          </Panel>
         ))}
       </div>
 
-
-      <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: '#0f172a' }}>
-              {['Product', 'Current Stock', 'Daily Demand', 'Days Left', 'Reorder Qty', 'Status'].map(h => (
-                <th key={h} style={{
-                  padding: '12px 14px',
-                  textAlign: 'left',
-                  color: '#64748b',
-                  fontWeight: 600,
-                  borderBottom: '1px solid #334155'
-                }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {reorder.alerts.map((row, i) => {
-              const c = colorMap[row.status];
-              return (
-                <tr key={i} style={{
-                  borderBottom: '1px solid #0f172a',
-                  background: i % 2 === 0 ? '#0f172a' : '#111827'
-                }}>
-                  <td style={{ padding: '11px 14px', color: '#f1f5f9', fontWeight: 600 }}>
-                    {row.product}
-                  </td>
-                  <td style={{ padding: '11px 14px', color: '#94a3b8' }}>
-                    {row.total_stock.toLocaleString()} T
-                  </td>
-                  <td style={{ padding: '11px 14px', color: '#94a3b8' }}>
-                    {row.daily_demand.toLocaleString()} T/day
-                  </td>
-                  <td style={{ padding: '11px 14px' }}>
-                    <span style={{ color: c.text, fontWeight: 700 }}>
-                      {row.days_left} days
-                    </span>
-                  </td>
-                  <td style={{ padding: '11px 14px', color: '#3b82f6', fontWeight: 600 }}>
-                    {row.reorder_qty.toLocaleString()} T
-                  </td>
-                  <td style={{ padding: '11px 14px' }}>
-                    <span style={{
-                      background: c.bg,
-                      color: c.text,
-                      border: `1px solid ${c.border}`,
-                      borderRadius: 20,
-                      padding: '2px 10px',
-                      fontSize: 11,
-                      fontWeight: 700
-                    }}>
-                      {c.label}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Panel style={{ padding: 0 }}>
+        <Table
+          headers={['Product', 'Stock', 'Daily Demand', 'Days Left', 'Reorder Qty', 'Status']}
+          rows={reorder.alerts.map((row, i) => {
+            const color = colorMap[row.status];
+            return (
+              <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                <td style={{ padding: '11px 14px', color: C.text, fontWeight: 500 }}>{row.product}</td>
+                <td style={{ padding: '11px 14px', color: C.textSub, ...styles.mono, fontSize: 11 }}>{row.total_stock.toLocaleString()} T</td>
+                <td style={{ padding: '11px 14px', color: C.textSub, ...styles.mono, fontSize: 11 }}>{row.daily_demand.toLocaleString()} T/day</td>
+                <td style={{ padding: '11px 14px' }}>
+                  <span style={{ color, fontWeight: 600, ...styles.mono, fontSize: 12 }}>{row.days_left}d</span>
+                </td>
+                <td style={{ padding: '11px 14px', color: C.accent, fontWeight: 600, ...styles.mono, fontSize: 11 }}>{row.reorder_qty.toLocaleString()} T</td>
+                <td style={{ padding: '11px 14px' }}><Tag color={color}>{row.status}</Tag></td>
+              </tr>
+            );
+          })}
+        />
+      </Panel>
     </div>
   );
 }
 
-function AlertBanner({ alerts }) {
-  if (!alerts || alerts.length === 0) return null;
+function Weekly({ weekly }) {
+  if (!weekly) return <div style={{ color: C.textDim }}>Loading…</div>;
 
-  const colorMap = {
-    danger: { bg: '#ef444420', border: '#ef4444', text: '#ef4444' },
-    warning: { bg: '#f59e0b20', border: '#f59e0b', text: '#f59e0b' },
-    success: { bg: '#1e293b', border: '#334155', text: '#64748b' },
-  };
+  const destData = Object.keys(weekly.top_destinations).map(k => ({ name: k, value: weekly.top_destinations[k] }));
 
   return (
-    <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {alerts.map((alert, i) => {
-        const c = colorMap[alert.type] || colorMap.warning;
-        return (
-          <div key={i} style={{
-            background: c.bg,
-            border: `1px solid ${c.border}`,
-            borderLeft: `4px solid ${c.border}`,
-            borderRadius: 8,
-            padding: '10px 16px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
-          }}>
-            <div>
-              <div style={{ color: c.text, fontWeight: 700, fontSize: 13 }}>
-                {alert.title}
-              </div>
-              <div style={{ color: '#94a3b8', fontSize: 12, marginTop: 2 }}>
-                {alert.detail}
-              </div>
-            </div>
-            <span style={{
-              background: c.border,
-              color: '#fff',
-              fontSize: 10,
-              fontWeight: 700,
-              padding: '2px 10px',
-              borderRadius: 20
-            }}>
-              {alert.type.toUpperCase()}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function WeeklyPerformance({ weekly }) {
-  if (!weekly) return <div style={{ color: '#64748b' }}>Loading...</div>;
-
-  const destData = Object.keys(weekly.top_destinations).map(k => ({
-    name: k, value: weekly.top_destinations[k]
-  }));
-
-  const productData = Object.keys(weekly.product_breakdown).map(k => ({
-    name: k, value: weekly.product_breakdown[k]
-  }));
-
-  return (
-    <div>
-      <SectionTitle
-        title="Weekly Performance Report"
-        sub="This week's logistics performance summary"
-      />
-
-     
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 12,
-        marginBottom: 20
-      }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
         {[
-          { label: 'Weekly Saving',    value: `₹${weekly.weekly_summary.total_saving_cr} Cr`, color: '#10b981' },
-          { label: 'Avg Fill %',       value: `${weekly.weekly_summary.avg_fill_pct}%`,        color: '#3b82f6' },
-          { label: 'Orders Completed', value: weekly.weekly_summary.total_orders,              color: '#f59e0b' },
-          { label: 'Rakes Dispatched', value: weekly.weekly_summary.total_rakes,               color: '#8b5cf6' },
+          { label: 'Weekly Saving', value: `₹${weekly.weekly_summary.total_saving_cr} Cr`, color: C.success },
+          { label: 'Avg Fill', value: `${weekly.weekly_summary.avg_fill_pct}%`, color: C.accent },
+          { label: 'Orders Done', value: weekly.weekly_summary.total_orders, color: C.info },
+          { label: 'Rakes Dispatched', value: weekly.weekly_summary.total_rakes, color: C.textSub },
         ].map((item, i) => (
-          <div key={i} style={{
-            background:   '#1e293b',
-            borderRadius: 10,
-            padding:      '16px 20px',
-            borderTop:    `3px solid ${item.color}`
-          }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: item.color }}>
-              {item.value}
-            </div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>{item.label}</div>
-          </div>
+          <Panel key={i}>
+            <div style={{ ...styles.label, marginBottom: 8 }}>{item.label}</div>
+            <div style={{ fontSize: 24, fontWeight: 400, color: item.color, ...styles.mono }}>{item.value}</div>
+          </Panel>
         ))}
       </div>
 
-      
-      <div style={{ background: '#1e293b', borderRadius: 12, padding: 20, marginBottom: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
-          Daily Fill % This Week
-        </div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={weekly.daily_performance}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="day" stroke="#64748b" />
-            <YAxis domain={[80, 100]} stroke="#64748b" />
-            <Tooltip
-              contentStyle={{ background: '#1e293b', border: '1px solid #334155' }}
-              formatter={(v) => [`${v}%`, 'Fill %']}
-            />
-            <Bar dataKey="fill_pct" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+      <Panel>
+        <SectionHeader title="Daily Fill %" sub="This week" />
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={weekly.daily_performance} barSize={28}>
+            <CartesianGrid strokeDasharray="2 4" stroke={C.border} vertical={false} />
+            <XAxis dataKey="day" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textSub }} axisLine={false} tickLine={false} />
+            <YAxis domain={[80, 100]} stroke={C.textDim} tick={{ fontSize: 10, fill: C.textSub }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ background: C.elevated, border: `1px solid ${C.border}`, borderRadius: 3, fontSize: 11 }} formatter={(v) => [`${v}%`]} />
+            <Bar dataKey="fill_pct" fill={C.accent} radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </div>
+      </Panel>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-
-        
-        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
-            Daily Cost Saved (Cr)
-          </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={weekly.daily_performance}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="day" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155' }}
-                formatter={(v) => [`₹${v} Cr`, 'Saved']}
-              />
-              <Bar dataKey="cost_saved" fill="#10b981" radius={[4, 4, 0, 0]} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <Panel>
+          <SectionHeader title="Daily Cost Saved" />
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={weekly.daily_performance} barSize={22}>
+              <CartesianGrid strokeDasharray="2 4" stroke={C.border} vertical={false} />
+              <XAxis dataKey="day" stroke={C.textDim} tick={{ fontSize: 10, fill: C.textSub }} axisLine={false} tickLine={false} />
+              <YAxis stroke={C.textDim} tick={{ fontSize: 10, fill: C.textSub }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: C.elevated, border: `1px solid ${C.border}`, borderRadius: 3, fontSize: 11 }} formatter={(v) => [`₹${v} Cr`]} />
+              <Bar dataKey="cost_saved" fill={C.success} radius={[2, 2, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-        </div>
+        </Panel>
 
-        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
-            Daily Orders Completed
-          </div>
-          <ResponsiveContainer width="100%" height={180}>
-            <BarChart data={weekly.daily_performance}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-              <XAxis dataKey="day" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155' }}
-                formatter={(v) => [v, 'Orders']}
-              />
-              <Bar dataKey="orders" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <Panel>
+          <SectionHeader title="Top Destinations" />
+          {destData.length > 0 ? destData.map((item, i) => (
+            <div key={i} style={{
+              display: 'flex', justifyContent: 'space-between',
+              padding: '8px 10px', marginBottom: 6,
+              background: C.elevated, borderRadius: 3,
+              borderLeft: `2px solid ${PRODUCT_COLORS[i % PRODUCT_COLORS.length]}`
+            }}>
+              <span style={{ fontSize: 12, color: C.textSub }}>{item.name}</span>
+              <span style={{ fontSize: 12, color: PRODUCT_COLORS[i % PRODUCT_COLORS.length], fontWeight: 600, ...styles.mono }}>
+                {item.value} rakes
+              </span>
+            </div>
+          )) : <div style={{ color: C.textDim, fontSize: 12 }}>No dispatches yet</div>}
+        </Panel>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
 
-        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
-            Top Destinations This Week
-          </div>
-          {destData.length > 0 ? (
-            destData.map((item, i) => (
-              <div key={i} style={{
-                display:        'flex',
-                justifyContent: 'space-between',
-                alignItems:     'center',
-                padding:        '8px 12px',
-                background:     '#0f172a',
-                borderRadius:   8,
-                marginBottom:   8,
-                borderLeft:     `3px solid ${COLORS[i % COLORS.length]}`
-              }}>
-                <span style={{ color: '#94a3b8', fontSize: 13 }}>{item.name}</span>
-                <span style={{ color: COLORS[i % COLORS.length], fontWeight: 700 }}>
-                  {item.value} rakes
-                </span>
-              </div>
-            ))
-          ) : (
-            <div style={{ color: '#64748b', fontSize: 13 }}>No dispatches yet this week</div>
-          )}
-        </div>
-
-       
-        <div style={{ background: '#1e293b', borderRadius: 12, padding: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', marginBottom: 16 }}>
-            Order Priority Breakdown
-          </div>
+      <Panel>
+        <SectionHeader title="Order Priority Breakdown" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
           {Object.keys(weekly.priority_breakdown).map((priority, i) => {
-            const colors = { Critical: '#ef4444', High: '#f59e0b', Medium: '#3b82f6', Low: '#10b981' };
-            const color  = colors[priority] || '#94a3b8';
-            const total  = Object.values(weekly.priority_breakdown).reduce((a, b) => a + b, 0);
-            const pct    = Math.round((weekly.priority_breakdown[priority] / total) * 100);
+            const colors = { Critical: C.danger, High: C.warn, Medium: C.info, Low: C.success };
+            const color = colors[priority] || C.textSub;
+            const total = Object.values(weekly.priority_breakdown).reduce((a, b) => a + b, 0);
+            const pct = Math.round((weekly.priority_breakdown[priority] / total) * 100);
             return (
-              <div key={i} style={{ marginBottom: 12 }}>
-                <div style={{
-                  display:        'flex',
-                  justifyContent: 'space-between',
-                  marginBottom:   4
-                }}>
-                  <span style={{ fontSize: 12, color: '#94a3b8' }}>{priority}</span>
-                  <span style={{ fontSize: 12, color, fontWeight: 700 }}>
-                    {weekly.priority_breakdown[priority]} ({pct}%)
-                  </span>
+              <div key={i}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11, color: C.textSub }}>{priority}</span>
+                  <span style={{ fontSize: 11, color, fontWeight: 600, ...styles.mono }}>{pct}%</span>
                 </div>
-                <div style={{ background: '#0f172a', borderRadius: 4, height: 6 }}>
-                  <div style={{
-                    background:   color,
-                    borderRadius: 4,
-                    height:       6,
-                    width:        `${pct}%`
-                  }} />
+                <div style={{ background: C.elevated, borderRadius: 2, height: 4 }}>
+                  <div style={{ background: color, borderRadius: 2, height: 4, width: `${pct}%`, transition: 'width 0.6s ease' }} />
+                </div>
+                <div style={{ fontSize: 10, color: C.textDim, marginTop: 4, ...styles.mono }}>
+                  {weekly.priority_breakdown[priority]} orders
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -1042,11 +669,11 @@ export default function App() {
   const [plan, setPlan] = useState(null);
   const [orders, setOrders] = useState(null);
   const [forecast, setForecast] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [savings, setSavings] = useState(null);
   const [reorder, setReorder] = useState(null);
   const [weekly, setWeekly] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -1069,134 +696,113 @@ export default function App() {
       setSavings(sv.data);
       setReorder(rr.data);
       setWeekly(wk.data);
-    } catch (e) {
-      console.error('API error:', e);
-    }
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   useEffect(() => { fetchAll(); }, []);
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
-    { id: 'rakeplan', label: 'Rake Plan', icon: Train },
-    { id: 'orders', label: 'Orders', icon: Package },
-    { id: 'forecast', label: 'Forecast', icon: BarChart },
-    { id: 'whatif', label: 'What-If', icon: AlertTriangle },
-    { id: 'reorder', label: 'Reorder', icon: AlertTriangle },
-    { id: 'weekly', label: 'Weekly', icon: TrendingUp },
+    { id: 'dashboard', label: 'Overview' },
+    { id: 'rakeplan', label: 'Rake Plan' },
+    { id: 'orders', label: 'Orders' },
+    { id: 'forecast', label: 'Forecast' },
+    { id: 'whatif', label: 'What-If' },
+    { id: 'reorder', label: 'Reorder' },
+    { id: 'weekly', label: 'Weekly' },
   ];
 
+  const pageComponents = {
+    dashboard: <Dashboard summary={summary} savings={savings} alerts={alerts} />,
+    rakeplan: <RakePlan plan={plan} onRefresh={fetchAll} />,
+    orders: <Orders orders={orders} />,
+    forecast: <Forecast forecast={forecast} />,
+    whatif: <WhatIf />,
+    reorder: <Reorder reorder={reorder} />,
+    weekly: <Weekly weekly={weekly} />,
+  };
+
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', background: C.bg }}>
+
 
       <div style={{
-        width: 220,
-        background: '#1e293b',
-        padding: '24px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-        borderRight: '1px solid #334155'
+        width: 200, background: C.surface,
+        borderRight: `1px solid ${C.border}`,
+        display: 'flex', flexDirection: 'column',
+        padding: '24px 0'
       }}>
 
-        <div style={{ marginBottom: 28, paddingLeft: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Train size={24} color="#3b82f6" />
-            <div>
-              <div style={{ fontWeight: 800, fontSize: 18, color: '#f1f5f9' }}>RakeAI</div>
-              <div style={{ fontSize: 10, color: '#475569' }}>SAIL Bokaro</div>
-            </div>
+        <div style={{ padding: '0 20px 24px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <Train size={16} color={C.accent} />
+            <span style={{ fontSize: 15, fontWeight: 600, color: C.text, letterSpacing: '0.02em' }}>RakeAI</span>
+          </div>
+          <div style={{ fontSize: 10, color: C.textDim, letterSpacing: '0.1em', textTransform: 'uppercase', paddingLeft: 24 }}>
+            SAIL Bokaro
           </div>
         </div>
 
 
-        {navItems.map(({ id, label, icon: Icon }) => (
-          <button key={id} onClick={() => setPage(id)} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '10px 12px',
-            borderRadius: 8,
-            border: 'none',
-            cursor: 'pointer',
-            background: page === id ? '#3b82f622' : 'transparent',
-            color: page === id ? '#3b82f6' : '#64748b',
-            fontWeight: page === id ? 700 : 400,
-            fontSize: 14,
-            textAlign: 'left',
-            width: '100%'
+        <div style={{ padding: '16px 12px', flex: 1 }}>
+          {navItems.map(({ id, label }) => (
+            <button key={id} onClick={() => setPage(id)} style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              padding: '8px 12px', borderRadius: 3, border: 'none',
+              cursor: 'pointer', fontSize: 12, marginBottom: 2,
+              letterSpacing: '0.03em',
+              background: page === id ? C.accentDim : 'transparent',
+              color: page === id ? C.accent : C.textSub,
+              fontWeight: page === id ? 600 : 400,
+              borderLeft: page === id ? `2px solid ${C.accent}` : '2px solid transparent',
+            }}>{label}</button>
+          ))}
+        </div>
+
+
+        <div style={{ padding: '16px 12px', borderTop: `1px solid ${C.border}` }}>
+          <button onClick={fetchAll} style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            width: '100%', padding: '8px 12px', borderRadius: 3,
+            border: `1px solid ${C.border}`, cursor: 'pointer',
+            background: 'transparent', color: C.textDim, fontSize: 11,
+            letterSpacing: '0.06em'
           }}>
-            <Icon size={17} />
-            {label}
+            <RefreshCw size={11} color={loading ? C.accent : C.textDim}
+              style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            {loading ? 'Syncing…' : 'Refresh'}
           </button>
-        ))}
-
-
-        <button onClick={fetchAll} style={{
-          marginTop: 'auto',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '10px 12px',
-          borderRadius: 8,
-          border: '1px solid #334155',
-          cursor: 'pointer',
-          background: 'transparent',
-          color: '#64748b',
-          fontSize: 13
-        }}>
-          <RefreshCw size={14} />
-          {loading ? 'Refreshing...' : 'Refresh Data'}
-        </button>
+          <style>{`@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }`}</style>
+        </div>
       </div>
 
 
-      <div style={{ flex: 1, padding: 28, overflowY: 'auto' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
 
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 24
+          height: 52, borderBottom: `1px solid ${C.border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 28px', background: C.surface
         }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
               {navItems.find(n => n.id === page)?.label}
-            </h1>
-            <p style={{ fontSize: 13, color: '#475569' }}>
+            </span>
+            <span style={{ fontSize: 11, color: C.textDim, marginLeft: 10 }}>
               SAIL Bokaro Steel Plant — Rake Formation System
-            </p>
+            </span>
           </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            background: '#1e293b',
-            padding: '6px 14px',
-            borderRadius: 20,
-            fontSize: 12,
-            color: '#10b981'
-          }}>
-            <CheckCircle size={13} />
-            System Active
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.success }}>
+            <CheckCircle size={11} />
+            <span style={{ letterSpacing: '0.06em' }}>SYSTEM ACTIVE</span>
           </div>
         </div>
 
 
-        {page === 'dashboard' && (
-          <>
-            <AlertBanner alerts={alerts} />
-            <SavingsCard savings={savings} />
-            <Dashboard summary={summary} />
-          </>
-        )}
-        {page === 'rakeplan' && <RakePlan plan={plan} onRefresh={fetchAll} />}
-        {page === 'orders' && <Orders orders={orders} />}
-        {page === 'forecast' && <Forecast forecast={forecast} />}
-        {page === 'whatif' && <WhatIf />}
-        {page === 'reorder' && <ReorderAlerts reorder={reorder} />}
-        {page === 'weekly' && <WeeklyPerformance weekly={weekly} />}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+          {pageComponents[page]}
+        </div>
       </div>
     </div>
   );
