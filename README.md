@@ -71,6 +71,11 @@ python data/generate_data.py
 # 4. Start backend
 uvicorn backend.main:app --reload
 
+Backend  → uvicorn backend.main:app --reload
+Frontend → npm start
+Access   → http://localhost:3000
+
+
 # 5. Start frontend
 cd frontend && npm install && npm start
 ```
