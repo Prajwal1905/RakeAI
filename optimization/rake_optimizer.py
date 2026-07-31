@@ -284,9 +284,9 @@ if __name__ == "__main__":
 
     if len(plan) > 0:
         print(f" Optimization complete!")
-        print(f"\n{'='*55}")
+        
         print(f"   DAILY RAKE PLAN")
-        print(f"{'='*55}")
+        
         for _, row in plan.iterrows():
             print(f"\n {row['rake_id']} ({row['wagon_type']})")
             print(f"   Orders clubbed  : {row['orders_clubbed']}")
