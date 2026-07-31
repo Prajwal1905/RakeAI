@@ -1,0 +1,36 @@
+stockyard_id,stockyard_name,product,quantity_tonnes,age_days,storage_cost_per_day
+SY01,Bokaro Stockyard 1,HR Coil,528.85,2,4230.8
+SY01,Bokaro Stockyard 1,CR Coil,581.37,16,4650.96
+SY01,Bokaro Stockyard 1,TMT Bar,314.79,7,2518.32
+SY01,Bokaro Stockyard 1,Wire Rod,548.02,35,4384.16
+SY01,Bokaro Stockyard 1,Plate,244.71,28,1957.68
+SY01,Bokaro Stockyard 1,Structurals,216.35,6,1730.8
+SY01,Bokaro Stockyard 1,Semis,312.44,33,2499.52
+SY02,Bokaro Stockyard 2,HR Coil,423.61,36,3388.88
+SY02,Bokaro Stockyard 2,CR Coil,273.85,42,2190.8
+SY02,Bokaro Stockyard 2,TMT Bar,460.49,27,3683.92
+SY02,Bokaro Stockyard 2,Wire Rod,281.88,38,2255.04
+SY02,Bokaro Stockyard 2,Plate,303.33,1,2426.64
+SY02,Bokaro Stockyard 2,Structurals,481.84,11,3854.72
+SY02,Bokaro Stockyard 2,Semis,459.31,22,3674.48
+SY03,Bokaro Stockyard 3,HR Coil,382.6,14,3060.8
+SY03,Bokaro Stockyard 3,CR Coil,829.03,22,6632.24
+SY03,Bokaro Stockyard 3,TMT Bar,267.17,25,2137.36
+SY03,Bokaro Stockyard 3,Wire Rod,263.56,23,2108.48
+SY03,Bokaro Stockyard 3,Plate,596.73,3,4773.84
+SY03,Bokaro Stockyard 3,Structurals,679.54,35,5436.32
+SY03,Bokaro Stockyard 3,Semis,282.03,25,2256.24
+SY04,Bokaro Stockyard 4,HR Coil,223.64,19,1789.12
+SY04,Bokaro Stockyard 4,CR Coil,448.82,40,3590.56
+SY04,Bokaro Stockyard 4,TMT Bar,465.64,24,3725.12
+SY04,Bokaro Stockyard 4,Wire Rod,373.21,5,2985.68
+SY04,Bokaro Stockyard 4,Plate,213.75,15,1710.0
+SY04,Bokaro Stockyard 4,Structurals,431.92,6,3455.36
+SY04,Bokaro Stockyard 4,Semis,456.6,7,3652.8
+SY05,Bokaro Stockyard 5,HR Coil,368.34,30,2946.72
+SY05,Bokaro Stockyard 5,CR Coil,481.52,24,3852.16
+SY05,Bokaro Stockyard 5,TMT Bar,272.03,23,2176.24
+SY05,Bokaro Stockyard 5,Wire Rod,292.78,18,2342.24
+SY05,Bokaro Stockyard 5,Plate,510.81,44,4086.48
+SY05,Bokaro Stockyard 5,Structurals,486.99,39,3895.92
+SY05,Bokaro Stockyard 5,Semis,481.2,35,3849.6

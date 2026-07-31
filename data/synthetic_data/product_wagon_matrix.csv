@@ -1,0 +1,36 @@
+product,wagon_type,is_suitable,wagon_capacity
+HR Coil,BOXN,0,58
+HR Coil,BOBYN,1,60
+HR Coil,BCN,0,55
+HR Coil,BLC,1,62
+HR Coil,BOST,0,50
+CR Coil,BOXN,0,58
+CR Coil,BOBYN,1,60
+CR Coil,BCN,0,55
+CR Coil,BLC,1,62
+CR Coil,BOST,0,50
+TMT Bar,BOXN,1,58
+TMT Bar,BOBYN,0,60
+TMT Bar,BCN,1,55
+TMT Bar,BLC,0,62
+TMT Bar,BOST,0,50
+Wire Rod,BOXN,1,58
+Wire Rod,BOBYN,0,60
+Wire Rod,BCN,1,55
+Wire Rod,BLC,0,62
+Wire Rod,BOST,0,50
+Plate,BOXN,0,58
+Plate,BOBYN,1,60
+Plate,BCN,0,55
+Plate,BLC,1,62
+Plate,BOST,1,50
+Structurals,BOXN,1,58
+Structurals,BOBYN,0,60
+Structurals,BCN,0,55
+Structurals,BLC,0,62
+Structurals,BOST,1,50
+Semis,BOXN,1,58
+Semis,BOBYN,0,60
+Semis,BCN,1,55
+Semis,BLC,0,62
+Semis,BOST,1,50

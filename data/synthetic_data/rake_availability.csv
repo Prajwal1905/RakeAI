@@ -1,0 +1,61 @@
+rake_id,wagon_type,num_wagons,capacity_per_wagon,total_capacity,suitable_products,status,current_location,eta_days
+RK100,BLC,56,62,3472,"HR Coil, CR Coil, Plate",Available,Destination,0
+RK101,BOST,44,50,2200,"Structurals, Semis, Plate",Available,Destination,0
+RK102,BCN,45,55,2475,"TMT Bar, Wire Rod, Semis",Available,Destination,0
+RK103,BCN,58,55,3190,"TMT Bar, Wire Rod, Semis",Available,Destination,0
+RK104,BOST,55,50,2750,"Structurals, Semis, Plate",In Transit,En Route,3
+RK105,BOXN,51,58,2958,"TMT Bar, Wire Rod, Structurals, Semis",Available,Bokaro Yard,0
+RK106,BLC,58,62,3596,"HR Coil, CR Coil, Plate",Available,Destination,0
+RK107,BOXN,55,58,3190,"TMT Bar, Wire Rod, Structurals, Semis",Available,Destination,0
+RK108,BOST,58,50,2900,"Structurals, Semis, Plate",Available,Bokaro Yard,0
+RK109,BOST,55,50,2750,"Structurals, Semis, Plate",Available,Destination,0
+RK110,BOST,52,50,2600,"Structurals, Semis, Plate",Available,Destination,0
+RK111,BOBYN,41,60,2460,"HR Coil, CR Coil, Plate",In Transit,Destination,0
+RK112,BOBYN,40,60,2400,"HR Coil, CR Coil, Plate",Available,En Route,0
+RK113,BOBYN,53,60,3180,"HR Coil, CR Coil, Plate",In Transit,En Route,4
+RK114,BOST,55,50,2750,"Structurals, Semis, Plate",Loading,Destination,0
+RK115,BOXN,44,58,2552,"TMT Bar, Wire Rod, Structurals, Semis",In Transit,Destination,2
+RK116,BLC,56,62,3472,"HR Coil, CR Coil, Plate",Available,Bokaro Yard,0
+RK117,BLC,57,62,3534,"HR Coil, CR Coil, Plate",Available,En Route,0
+RK118,BCN,55,55,3025,"TMT Bar, Wire Rod, Semis",Available,Bokaro Yard,0
+RK119,BCN,57,55,3135,"TMT Bar, Wire Rod, Semis",Available,En Route,0
+RK120,BCN,46,55,2530,"TMT Bar, Wire Rod, Semis",In Transit,En Route,2
+RK121,BLC,51,62,3162,"HR Coil, CR Coil, Plate",In Transit,Destination,2
+RK122,BCN,43,55,2365,"TMT Bar, Wire Rod, Semis",In Transit,Destination,3
+RK123,BLC,51,62,3162,"HR Coil, CR Coil, Plate",Loading,Bokaro Yard,0
+RK124,BCN,41,55,2255,"TMT Bar, Wire Rod, Semis",Available,Destination,0
+RK125,BOXN,51,58,2958,"TMT Bar, Wire Rod, Structurals, Semis",Loading,Destination,0
+RK126,BCN,55,55,3025,"TMT Bar, Wire Rod, Semis",Available,Destination,0
+RK127,BCN,57,55,3135,"TMT Bar, Wire Rod, Semis",In Transit,Bokaro Yard,0
+RK128,BOST,58,50,2900,"Structurals, Semis, Plate",Available,Bokaro Yard,0
+RK129,BOST,47,50,2350,"Structurals, Semis, Plate",In Transit,Bokaro Yard,0
+RK130,BLC,50,62,3100,"HR Coil, CR Coil, Plate",In Transit,Bokaro Yard,5
+RK131,BOBYN,40,60,2400,"HR Coil, CR Coil, Plate",Loading,Bokaro Yard,0
+RK132,BLC,55,62,3410,"HR Coil, CR Coil, Plate",Available,Bokaro Yard,0
+RK133,BCN,50,55,2750,"TMT Bar, Wire Rod, Semis",Available,Bokaro Yard,0
+RK134,BOXN,58,58,3364,"TMT Bar, Wire Rod, Structurals, Semis",Available,Destination,0
+RK135,BOXN,45,58,2610,"TMT Bar, Wire Rod, Structurals, Semis",Available,Bokaro Yard,0
+RK136,BOXN,52,58,3016,"TMT Bar, Wire Rod, Structurals, Semis",Under Maintenance,Bokaro Yard,0
+RK137,BCN,41,55,2255,"TMT Bar, Wire Rod, Semis",Available,Destination,0
+RK138,BOST,43,50,2150,"Structurals, Semis, Plate",Loading,En Route,0
+RK139,BCN,54,55,2970,"TMT Bar, Wire Rod, Semis",Loading,Destination,0
+RK140,BOST,55,50,2750,"Structurals, Semis, Plate",Loading,Bokaro Yard,0
+RK141,BOST,54,50,2700,"Structurals, Semis, Plate",Available,Bokaro Yard,0
+RK142,BCN,45,55,2475,"TMT Bar, Wire Rod, Semis",In Transit,Destination,2
+RK143,BOBYN,40,60,2400,"HR Coil, CR Coil, Plate",In Transit,En Route,4
+RK144,BOBYN,45,60,2700,"HR Coil, CR Coil, Plate",In Transit,Destination,3
+RK145,BLC,56,62,3472,"HR Coil, CR Coil, Plate",Available,En Route,0
+RK146,BOXN,45,58,2610,"TMT Bar, Wire Rod, Structurals, Semis",Loading,En Route,0
+RK147,BCN,47,55,2585,"TMT Bar, Wire Rod, Semis",Available,En Route,0
+RK148,BOBYN,54,60,3240,"HR Coil, CR Coil, Plate",Under Maintenance,En Route,0
+RK149,BCN,58,55,3190,"TMT Bar, Wire Rod, Semis",In Transit,Bokaro Yard,2
+RK150,BCN,47,55,2585,"TMT Bar, Wire Rod, Semis",Available,Bokaro Yard,0
+RK151,BLC,49,62,3038,"HR Coil, CR Coil, Plate",Available,Destination,0
+RK152,BOST,49,50,2450,"Structurals, Semis, Plate",In Transit,Destination,2
+RK153,BCN,47,55,2585,"TMT Bar, Wire Rod, Semis",Available,Bokaro Yard,0
+RK154,BLC,44,62,2728,"HR Coil, CR Coil, Plate",Available,Destination,0
+RK155,BCN,53,55,2915,"TMT Bar, Wire Rod, Semis",In Transit,En Route,4
+RK156,BOBYN,47,60,2820,"HR Coil, CR Coil, Plate",In Transit,Destination,0
+RK157,BOST,54,50,2700,"Structurals, Semis, Plate",In Transit,En Route,0
+RK158,BOST,43,50,2150,"Structurals, Semis, Plate",Available,Destination,0
+RK159,BOST,46,50,2300,"Structurals, Semis, Plate",In Transit,Bokaro Yard,1
