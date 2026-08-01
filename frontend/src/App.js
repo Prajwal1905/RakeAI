@@ -253,14 +253,22 @@ function Dashboard({ summary, savings, alerts }) {
 }
 
 function RakePlan({ plan, onRefresh }) {
+  const [confirmDispatch, setConfirmDispatch] = useState(null);
+  const [toast, setToast] = useState(null);
+
   if (!plan) return <div style={{ color: C.textDim }}>Loading…</div>;
 
   const handleDispatch = async (rakeId, orderIds) => {
-    if (!window.confirm(`Dispatch ${rakeId}?`)) return;
     try {
       await axios.post(`${API}/dispatch-rake/${rakeId}?order_ids=${encodeURIComponent(orderIds)}`);
-      onRefresh();
-    } catch { alert('Error dispatching'); }
+      setConfirmDispatch(null);
+      setToast({ type: 'success', text: `${rakeId} dispatched successfully` });
+      await onRefresh();
+      setTimeout(() => setToast(null), 3000);
+    } catch {
+      setToast({ type: 'error', text: 'Error dispatching rake' });
+      setTimeout(() => setToast(null), 3000);
+    }
   };
 
   return (
@@ -300,7 +308,7 @@ function RakePlan({ plan, onRefresh }) {
                 ₹{(row.total_cost / 100000).toFixed(1)}L
               </td>
               <td style={{ padding: '11px 14px' }}>
-                <button onClick={() => handleDispatch(row.rake_id, row.order_ids)} style={{
+                <button onClick={() => setConfirmDispatch({ rakeId: row.rake_id, orderIds: row.order_ids })} style={{
                   background: 'transparent', color: C.success,
                   border: `1px solid ${C.success}44`, borderRadius: 2,
                   padding: '4px 12px', cursor: 'pointer', fontSize: 11,
@@ -311,10 +319,56 @@ function RakePlan({ plan, onRefresh }) {
           ))}
         />
       </Panel>
+
+      
+      {confirmDispatch && (
+        <div style={{
+          position: 'fixed', inset: 0, background: '#000000aa',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }}>
+          <div style={{
+            background: C.elevated, border: `1px solid ${C.border}`,
+            borderRadius: 6, padding: 24, width: 320
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: C.text, marginBottom: 8 }}>
+              Dispatch {confirmDispatch.rakeId}?
+            </div>
+            <div style={{ fontSize: 12, color: C.textSub, marginBottom: 20 }}>
+              This will mark all orders in this rake as dispatched. This action cannot be undone.
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setConfirmDispatch(null)} style={{
+                background: 'transparent', color: C.textSub,
+                border: `1px solid ${C.border}`, borderRadius: 3,
+                padding: '7px 16px', cursor: 'pointer', fontSize: 12
+              }}>Cancel</button>
+              <button onClick={() => handleDispatch(confirmDispatch.rakeId, confirmDispatch.orderIds)} style={{
+                background: C.success, color: '#0a0a0a',
+                border: 'none', borderRadius: 3,
+                padding: '7px 16px', cursor: 'pointer', fontSize: 12, fontWeight: 600
+              }}>Confirm Dispatch</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24,
+          background: C.elevated,
+          border: `1px solid ${toast.type === 'success' ? C.success : C.danger}55`,
+          borderLeft: `3px solid ${toast.type === 'success' ? C.success : C.danger}`,
+          borderRadius: 4, padding: '12px 18px',
+          color: toast.type === 'success' ? C.success : C.danger,
+          fontSize: 12, fontWeight: 500, zIndex: 1000
+        }}>
+          {toast.text}
+        </div>
+      )}
     </div>
   );
 }
-
 function Orders({ orders }) {
   const [filter, setFilter] = useState('All');
   if (!orders) return <div style={{ color: C.textDim }}>Loading…</div>;
