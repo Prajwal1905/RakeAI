@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import {
   Train, Package, AlertTriangle,
-  TrendingUp, RefreshCw, CheckCircle, DollarSign
+  TrendingUp, RefreshCw, CheckCircle
 } from 'lucide-react';
 
 const API = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
@@ -73,9 +73,6 @@ function Badge({ text }) {
   return <Tag color={color}>{text}</Tag>;
 }
 
-function Divider() {
-  return <div style={{ height: 1, background: C.border, margin: '20px 0' }} />;
-}
 
 function StatCard({ icon: Icon, label, value, color = C.accent }) {
   return (
