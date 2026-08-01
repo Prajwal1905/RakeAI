@@ -6,7 +6,7 @@ from optimization.rake_optimizer import optimize_rake_plan
 
 router = APIRouter()
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(BASE_DIR, 'data', 'synthetic_data')
 
 def df_to_json(df):
