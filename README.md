@@ -1,6 +1,14 @@
-<!-- updated -->
 # RakeAI
 **AI/ML Decision Support System for Rake Formation — SAIL Bokaro Steel Plant**
+
+---
+
+## Live Demo
+
+- **Dashboard:** https://rake-ai-f6tu-sigma.vercel.app
+- **API Docs:** https://rakeai-dwal.onrender.com/docs
+
+> Note: Backend runs on Render's free tier, which spins down after 15 minutes of inactivity. First request after idle may take 30–50 seconds to respond.
 
 ---
 
@@ -51,10 +59,36 @@ Result: A logistics planner opens the dashboard at 8am and the optimal rake plan
 - **Backend:** Python, FastAPI, Scikit-learn, XGBoost, Statsmodels
 - **Frontend:** React, Recharts
 - **Data:** Synthetic data based on Indian Railways freight parameters and SAIL Annual Report 2023–24
+- **Deployment:** Render (backend), Vercel (frontend)
 
 ---
 
-## Setup
+## Architecture
+
+```
+backend/
+  main.py                → FastAPI app entrypoint, CORS, router registration
+  routes/
+    plan.py               → /rake-plan, /dispatch-rake, /dispatch-order
+    orders.py              → /orders, /alerts
+    inventory.py            → /inventory, /rakes, /reorder-alerts
+    forecast.py              → /forecast
+    analytics.py              → /summary, /cost-savings, /whatif, /weekly-performance
+optimization/
+  rake_optimizer.py        → Core rake-clubbing optimization logic
+ml/
+  saved_models/              → Trained XGBoost + ARIMA model artifacts
+  *.ipynb                      → Training notebooks
+data/
+  synthetic_data/                → Generated CSVs (orders, inventory, rakes, dispatch history)
+  generate_data.py                 → Synthetic data generator
+frontend/
+  src/App.js                        → Full dashboard UI (7 views, single-file React app)
+```
+
+---
+
+## Local Setup
 
 ```bash
 # 1. Install dependencies
@@ -71,11 +105,6 @@ python data/generate_data.py
 # 4. Start backend
 uvicorn backend.main:app --reload
 
-Backend  → uvicorn backend.main:app --reload
-Frontend → npm start
-Access   → http://localhost:3000
-
-
 # 5. Start frontend
 cd frontend && npm install && npm start
 ```
@@ -83,8 +112,16 @@ cd frontend && npm install && npm start
 Dashboard → `http://localhost:3000`
 API Docs  → `http://127.0.0.1:8000/docs`
 
+For local frontend/backend to talk to each other, set `frontend/.env`:
+```
+REACT_APP_API_URL=http://127.0.0.1:8000
+```
+
 ---
 
-## Note on Data
+## Known Limitations
 
-Real SAIL data is proprietary. Synthetic data mirrors real operational parameters. In production, only the data ingestion layer needs replacing with SAP API connectors all ML models and optimization logic remain unchanged.
+- **Dispatch state is not persistent in production.** Render's free-tier filesystem is ephemeral — dispatches update `customer_orders.csv` live, but a server restart (idle timeout or redeploy) resets it to the last committed version. A production deployment would use a real database instead of CSV files.
+- **Weekly performance chart uses seeded random data**, not real historical dispatch records, for demonstration purposes.
+- **No automated tests** currently cover the optimizer or ML pipeline.
+- Real SAIL data is proprietary — synthetic data mirrors real operational parameters. In production, only the data ingestion layer needs replacing with SAP API connectors; all ML models and optimization logic remain unchanged.
