@@ -35,6 +35,10 @@ RakeAI automates the entire planning process using AI/ML:
 Result: A logistics planner opens the dashboard at 8am and the optimal rake plan is already ready.
 
 ---
+## System Architecture
+
+![RakeAI Architecture](assets/architecture.png)
+---
 
 ## Results
 
